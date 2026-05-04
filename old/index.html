@@ -1,0 +1,2398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>♟ Xadrez Arena</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06070f;--surface:rgba(8,12,28,.88);--border:rgba(0,230,180,.18);--border2:rgba(0,230,180,.45);
+  --accent:#00e6b4;--accent2:#6c63ff;--danger:#ff4d6d;--warn:#ffd166;
+  --text:#dde8f0;--muted:#5a7080;--gold:#ffd166;--silver:#b0bec5;--bronze:#cd7f32;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Exo 2',sans-serif;color:var(--text)}
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* ── PAGES ── */
+.page{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+  padding:1.2rem;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;transform:translateY(16px)}
+.page.active{opacity:1;pointer-events:all;transform:translateY(0)}
+.page-full{align-items:flex-start;padding:0;overflow-y:auto}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;
+  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  box-shadow:0 0 36px rgba(0,230,180,.05),0 20px 50px rgba(0,0,0,.5);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.55}
+
+/* ── FORM ELEMENTS ── */
+.logo-wrap{text-align:center;margin-bottom:1.8rem}
+.logo-icon{font-size:2.8rem;filter:drop-shadow(0 0 16px var(--accent));animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.logo-title{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:900;letter-spacing:.15em;
+  color:var(--accent);text-shadow:0 0 20px rgba(0,230,180,.5);margin-top:.5rem}
+.logo-sub{font-size:.72rem;letter-spacing:.22em;color:var(--muted);text-transform:uppercase;margin-top:.2rem}
+
+.field{margin-bottom:1.2rem}
+.field label{display:block;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:.4rem}
+.field-wrap{position:relative;display:flex;align-items:center}
+.field-icon{position:absolute;left:.85rem;color:var(--accent);font-size:.9rem;opacity:.7;pointer-events:none}
+.field input,.field select{width:100%;background:rgba(0,230,180,.04);border:1px solid var(--border);
+  border-radius:9px;padding:.78rem 1rem .78rem 2.6rem;color:var(--text);
+  font-family:'Exo 2',sans-serif;font-size:.9rem;outline:none;
+  transition:border-color .2s,box-shadow .2s,background .2s;appearance:none}
+.field select{padding-left:2.6rem;cursor:pointer}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,230,180,.12);
+  background:rgba(0,230,180,.07)}
+.field input::placeholder{color:var(--muted);opacity:.7}
+.eye-btn{position:absolute;right:.85rem;background:none;border:none;cursor:pointer;
+  color:var(--muted);font-size:.95rem;transition:color .2s}
+.eye-btn:hover{color:var(--accent)}
+
+.btn-primary{width:100%;background:linear-gradient(135deg,var(--accent),#00b894);border:none;
+  border-radius:9px;padding:.85rem;color:#06070f;font-family:'Orbitron',monospace;font-size:.8rem;
+  font-weight:700;letter-spacing:.12em;cursor:pointer;transition:filter .2s,transform .15s,box-shadow .2s;
+  box-shadow:0 0 18px rgba(0,230,180,.28)}
+.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 0 28px rgba(0,230,180,.42)}
+.btn-primary:active{transform:translateY(1px)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.btn-secondary{width:100%;background:transparent;border:1px solid var(--border2);border-radius:9px;
+  padding:.85rem;color:var(--accent);font-family:'Orbitron',monospace;font-size:.76rem;
+  font-weight:700;letter-spacing:.12em;cursor:pointer;transition:background .2s,box-shadow .2s}
+.btn-secondary:hover{background:rgba(0,230,180,.08);box-shadow:0 0 18px rgba(0,230,180,.15)}
+
+.btn-danger{background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.35);border-radius:9px;
+  padding:.6rem 1.2rem;color:var(--danger);font-size:.8rem;font-weight:600;cursor:pointer;
+  transition:background .2s}
+.btn-danger:hover{background:rgba(255,77,109,.2)}
+
+.divider{display:flex;align-items:center;gap:.8rem;margin:1.2rem 0;
+  color:var(--muted);font-size:.72rem;letter-spacing:.1em}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.page-footer{text-align:center;margin-top:1.4rem;font-size:.78rem;color:var(--muted)}
+.page-footer a{color:var(--accent);text-decoration:none;font-weight:600;cursor:pointer}
+.page-footer a:hover{text-shadow:0 0 10px var(--accent)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(80px);
+  border-radius:9px;padding:.65rem 1.3rem;font-size:.83rem;backdrop-filter:blur(14px);
+  transition:transform .3s;z-index:999;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.err{background:rgba(255,77,109,.14);border:1px solid rgba(255,77,109,.38);color:var(--danger)}
+.toast.ok{background:rgba(0,230,180,.12);border:1px solid rgba(0,230,180,.35);color:var(--accent)}
+
+/* ── LOGIN / REGISTER ── */
+#login-card,#register-card{width:100%;max-width:400px;padding:2.5rem 2.2rem 2rem}
+
+/* ── RANKING ── */
+#ranking-page{align-items:flex-start;padding:0}
+#ranking-card{width:100%;max-width:660px;margin:0 auto;border-radius:0;
+  min-height:100vh;display:flex;flex-direction:column;padding:1.8rem 1.4rem 3rem}
+@media(min-width:680px){
+  #ranking-page{align-items:center;padding:1.5rem}
+  #ranking-card{min-height:unset;border-radius:18px;max-height:94vh;overflow:hidden}
+}
+.rank-header{display:flex;align-items:center;gap:.9rem;margin-bottom:1.6rem}
+.back-btn{background:rgba(0,230,180,.07);border:1px solid var(--border);border-radius:8px;
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--accent);font-size:1rem;transition:background .2s;flex-shrink:0}
+.back-btn:hover{background:rgba(0,230,180,.15);border-color:var(--border2)}
+.rank-title{font-family:'Orbitron',monospace;font-size:1.15rem;font-weight:900;
+  color:var(--accent);letter-spacing:.1em;text-shadow:0 0 16px rgba(0,230,180,.4)}
+.rank-subtitle{font-size:.7rem;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-top:.1rem}
+.live-badge{display:flex;align-items:center;gap:.35rem;font-size:.68rem;
+  letter-spacing:.14em;color:var(--danger);text-transform:uppercase;margin-left:auto}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--danger);
+  animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.65)}}
+.rank-stats{display:flex;gap:.7rem;margin-bottom:1.4rem}
+.stat-pill{flex:1;background:rgba(0,230,180,.04);border:1px solid var(--border);
+  border-radius:9px;padding:.6rem .7rem;text-align:center}
+.stat-val{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent)}
+.stat-lbl{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:.1rem}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:.8rem;margin-bottom:1.6rem}
+.podium-item{flex:1;max-width:130px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.podium-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1.4rem;margin-bottom:.4rem;position:relative;border:2px solid transparent}
+.podium-avatar::after{content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:2px solid currentColor;opacity:.25;animation:spin 8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.p1 .podium-avatar{background:rgba(255,209,102,.14);color:var(--gold);border-color:var(--gold);box-shadow:0 0 18px rgba(255,209,102,.22)}
+.p2 .podium-avatar{background:rgba(176,190,197,.12);color:var(--silver);border-color:var(--silver)}
+.p3 .podium-avatar{background:rgba(205,127,50,.12);color:var(--bronze);border-color:var(--bronze)}
+.podium-block{width:100%;border-radius:9px 9px 0 0;display:flex;align-items:center;
+  justify-content:center;flex-direction:column;padding:.7rem .35rem;border:1px solid transparent;border-bottom:none}
+.p1 .podium-block{height:92px;background:rgba(255,209,102,.07);border-color:rgba(255,209,102,.22)}
+.p2 .podium-block{height:68px;background:rgba(176,190,197,.06);border-color:rgba(176,190,197,.18)}
+.p3 .podium-block{height:54px;background:rgba(205,127,50,.06);border-color:rgba(205,127,50,.18)}
+.podium-name{font-size:.75rem;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podium-elo{font-family:'Share Tech Mono',monospace;font-size:.82rem}
+.p1 .podium-elo{color:var(--gold)}.p2 .podium-elo{color:var(--silver)}.p3 .podium-elo{color:var(--bronze)}
+.search-wrap{position:relative;margin-bottom:1.4rem}
+.search-icon{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);
+  color:var(--muted);font-size:.9rem;pointer-events:none}
+.search-input{width:100%;background:rgba(0,230,180,.04);border:1px solid var(--border);
+  border-radius:9px;padding:.68rem 1rem .68rem 2.5rem;color:var(--text);
+  font-family:'Exo 2',sans-serif;font-size:.88rem;outline:none;transition:border-color .2s,box-shadow .2s}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,230,180,.1)}
+.search-input::placeholder{color:var(--muted);opacity:.7}
+.rank-table-wrap{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.rank-table-wrap::-webkit-scrollbar{width:3px}
+.rank-table-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);
+  padding:.55rem .7rem;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+thead th:last-child{text-align:right}
+tbody tr{border-bottom:1px solid rgba(0,230,180,.055);transition:background .15s}
+tbody tr:hover{background:rgba(0,230,180,.04)}
+tbody tr.me-row{background:rgba(0,230,180,.06);border:1px solid rgba(0,230,180,.2)}
+td{padding:.68rem .7rem;font-size:.85rem}
+.td-rank{font-family:'Share Tech Mono',monospace;color:var(--muted);width:36px}
+.td-player{display:flex;align-items:center;gap:.6rem}
+.mini-avatar{width:30px;height:30px;border-radius:50%;background:rgba(0,230,180,.09);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  font-size:.95rem;flex-shrink:0}
+.player-name{font-weight:600}
+.td-elo{font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:.9rem;text-align:right}
+.td-wins{color:#4ade80;font-weight:600}
+.td-loss{color:var(--danger)}
+.tier-badge{display:inline-block;padding:.18rem .45rem;border-radius:4px;
+  font-size:.62rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.tier-M{background:rgba(255,209,102,.14);color:var(--gold)}
+.tier-D{background:rgba(176,190,197,.14);color:var(--silver)}
+.tier-P{background:rgba(205,127,50,.14);color:var(--bronze)}
+.tier-G{background:rgba(108,99,255,.14);color:#a78bfa}
+.tier-S{background:rgba(0,230,180,.1);color:var(--accent)}
+
+/* ── MENU ── */
+#menu-page{align-items:flex-start;padding:0}
+#menu-card{width:100%;max-width:460px;margin:0 auto;border-radius:0;
+  min-height:100vh;display:flex;flex-direction:column;padding:1.8rem 1.4rem 3rem}
+@media(min-width:480px){
+  #menu-page{align-items:center;padding:1.5rem}
+  #menu-card{min-height:unset;border-radius:18px;overflow-y:auto;max-height:96vh}
+}
+.menu-header{display:flex;align-items:center;gap:.9rem;margin-bottom:1.8rem}
+.menu-title{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:900;
+  color:var(--accent);letter-spacing:.1em}
+.section-label{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:.7rem}
+.option-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1.4rem}
+.opt-btn{background:rgba(0,230,180,.05);border:1px solid var(--border);border-radius:10px;
+  padding:.75rem .6rem;cursor:pointer;text-align:center;transition:all .2s;color:var(--text)}
+.opt-btn:hover{background:rgba(0,230,180,.1);border-color:var(--border2)}
+.opt-btn.selected{background:rgba(0,230,180,.14);border-color:var(--accent);
+  box-shadow:0 0 14px rgba(0,230,180,.18);color:var(--accent)}
+.opt-btn .opt-icon{font-size:1.4rem;margin-bottom:.3rem}
+.opt-btn .opt-label{font-size:.75rem;font-weight:600}
+.opt-btn .opt-sub{font-size:.63rem;color:var(--muted);margin-top:.1rem}
+
+/* Difficulty stars */
+.diff-grid{display:grid;grid-template-columns:1fr;gap:.5rem;margin-bottom:1.6rem}
+.diff-btn{background:rgba(0,230,180,.04);border:1px solid var(--border);border-radius:10px;
+  padding:.65rem 1rem;cursor:pointer;display:flex;align-items:center;gap:.75rem;
+  transition:all .2s;color:var(--text)}
+.diff-btn:hover{border-color:var(--border2);background:rgba(0,230,180,.08)}
+.diff-btn.selected{background:rgba(0,230,180,.1);border-color:var(--accent);color:var(--accent)}
+.diff-stars{font-size:.95rem;letter-spacing:-.05em;flex-shrink:0}
+.diff-name{font-size:.85rem;font-weight:600}
+.diff-desc{font-size:.68rem;color:var(--muted)}
+
+.theme-row{display:flex;gap:.5rem;margin-bottom:1.6rem}
+.theme-swatch{width:40px;height:40px;border-radius:8px;cursor:pointer;border:2px solid transparent;
+  overflow:hidden;display:grid;grid-template-columns:1fr 1fr;transition:border-color .2s,transform .2s}
+.theme-swatch.selected{border-color:var(--accent);transform:scale(1.08)}
+.swatch-half{height:100%}
+
+/* ── GAME PAGE ── */
+#game-page{align-items:flex-start;padding:0;background:var(--bg)}
+#game-wrap{width:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;
+  height:100vh;padding:.8rem .8rem 1rem}
+.game-top{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem;flex-shrink:0}
+.game-title{font-family:'Orbitron',monospace;font-size:.85rem;font-weight:900;color:var(--accent)}
+.turn-badge{font-size:.72rem;padding:.25rem .7rem;border-radius:20px;font-weight:600;letter-spacing:.05em}
+.turn-badge.white{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.turn-badge.black{background:rgba(30,30,30,.5);color:#aaa;border:1px solid rgba(100,100,100,.3)}
+.check-badge{font-size:.72rem;padding:.25rem .7rem;border-radius:20px;font-weight:700;
+  letter-spacing:.05em;background:rgba(255,77,109,.18);color:var(--danger);
+  border:1px solid rgba(255,77,109,.4);animation:checkPulse .6s ease-in-out infinite}
+@keyframes checkPulse{0%,100%{opacity:1}50%{opacity:.5}}
+.ai-thinking{font-size:.68rem;color:var(--muted);font-style:italic;margin-left:auto}
+
+/* Captured pieces row */
+.captured-row{display:flex;align-items:center;gap:.2rem;min-height:24px;
+  padding:.2rem .4rem;font-size:.9rem;flex-wrap:wrap;flex-shrink:0}
+
+/* Board */
+#board-container{position:relative;flex:0 0 auto;margin:.3rem 0}
+#chess-board{display:grid;grid-template-columns:repeat(8,1fr);
+  border:2px solid rgba(0,230,180,.25);border-radius:6px;overflow:hidden;
+  box-shadow:0 0 30px rgba(0,0,0,.5);width:100%;aspect-ratio:1}
+.sq{display:flex;align-items:center;justify-content:center;cursor:pointer;
+  position:relative;transition:filter .12s;aspect-ratio:1;user-select:none}
+.sq:hover{filter:brightness(1.15)}
+.sq.selected-sq::after{content:'';position:absolute;inset:0;background:rgba(255,220,0,.35);pointer-events:none}
+.sq.move-dot::after{content:'';position:absolute;
+  width:32%;height:32%;border-radius:50%;background:rgba(0,200,100,.65);pointer-events:none}
+.sq.move-capture::after{content:'';position:absolute;inset:0;
+  box-shadow:inset 0 0 0 5px rgba(0,200,100,.7);border-radius:2px;pointer-events:none}
+.sq.in-check::after{content:'';position:absolute;inset:0;background:rgba(255,50,50,.4);pointer-events:none}
+.sq.last-move::before{content:'';position:absolute;inset:0;background:rgba(255,220,0,.18);pointer-events:none}
+
+.piece{font-size:calc(var(--sq-px,52px)*.7);line-height:1;position:relative;z-index:1;
+  pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.piece.white-p{filter:drop-shadow(0 0 3px rgba(0,0,0,.9)) drop-shadow(0 1px 2px rgba(0,0,0,1))}
+.piece.black-p{filter:drop-shadow(0 0 2px rgba(255,255,255,.3))}
+
+/* Coords */
+.coord{position:absolute;font-size:.55rem;font-family:'Share Tech Mono',monospace;
+  opacity:.5;pointer-events:none;z-index:2}
+.coord-file{bottom:1px;right:2px}
+.coord-rank{top:1px;left:2px}
+
+/* Info panel */
+.info-panel{display:flex;gap:.5rem;margin-top:.4rem;flex-shrink:0}
+.info-pill{flex:1;background:rgba(0,230,180,.04);border:1px solid var(--border);border-radius:8px;
+  padding:.45rem .6rem;text-align:center}
+.info-val{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent)}
+.info-lbl{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* Action buttons */
+.action-row{display:flex;gap:.5rem;margin-top:.5rem;flex-shrink:0}
+.act-btn{flex:1;background:rgba(0,230,180,.06);border:1px solid var(--border);border-radius:8px;
+  padding:.55rem .4rem;cursor:pointer;font-size:.72rem;color:var(--text);transition:all .2s;
+  font-family:'Exo 2',sans-serif}
+.act-btn:hover{border-color:var(--border2);background:rgba(0,230,180,.1)}
+.act-btn.resign{background:rgba(255,77,109,.08);border-color:rgba(255,77,109,.25);color:var(--danger)}
+.act-btn.resign:hover{background:rgba(255,77,109,.15)}
+
+/* Promotion modal */
+#promo-modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;
+  justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(8px)}
+#promo-modal.hidden{display:none}
+.promo-card{background:var(--surface);border:1px solid var(--border2);border-radius:14px;
+  padding:1.5rem;text-align:center}
+.promo-title{font-family:'Orbitron',monospace;font-size:.9rem;color:var(--accent);
+  margin-bottom:1rem;letter-spacing:.1em}
+.promo-pieces{display:flex;gap:.6rem;justify-content:center}
+.promo-btn{width:64px;height:64px;background:rgba(0,230,180,.08);border:1px solid var(--border2);
+  border-radius:10px;cursor:pointer;font-size:2.2rem;display:flex;align-items:center;
+  justify-content:center;transition:all .2s}
+.promo-btn:hover{background:rgba(0,230,180,.2);border-color:var(--accent)}
+
+/* Game over overlay */
+#gameover-modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;
+  justify-content:center;background:rgba(0,0,0,.78);backdrop-filter:blur(10px)}
+#gameover-modal.hidden{display:none}
+.gameover-card{background:var(--surface);border:1px solid var(--border2);border-radius:18px;
+  padding:2rem 2.5rem;text-align:center;min-width:260px}
+.gameover-icon{font-size:3rem;margin-bottom:.6rem}
+.gameover-title{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:900;
+  color:var(--accent);margin-bottom:.4rem;letter-spacing:.1em}
+.gameover-sub{font-size:.85rem;color:var(--muted);margin-bottom:.4rem}
+.gameover-elo{font-family:'Share Tech Mono',monospace;font-size:1.3rem;margin:.8rem 0}
+.elo-up{color:#4ade80}.elo-down{color:var(--danger)}.elo-same{color:var(--muted)}
+.gameover-btns{display:flex;gap:.6rem;margin-top:1.2rem}
+
+/* Move history */
+.history-wrap{flex:1;overflow-y:auto;margin-top:.4rem;
+  scrollbar-width:thin;scrollbar-color:var(--border2) transparent;min-height:0}
+.history-wrap::-webkit-scrollbar{width:3px}
+.history-wrap::-webkit-scrollbar-thumb{background:var(--border2)}
+.history-inner{display:flex;flex-wrap:wrap;gap:.25rem;padding:.3rem 0}
+.hist-move{font-family:'Share Tech Mono',monospace;font-size:.7rem;
+  padding:.15rem .4rem;border-radius:4px;background:rgba(0,230,180,.06);color:var(--muted)}
+.hist-move.last{background:rgba(0,230,180,.14);color:var(--accent)}
+
+/* Profile section in ranking */
+.profile-section{background:rgba(0,230,180,.04);border:1px solid var(--border);border-radius:10px;
+  padding:1rem;margin-bottom:1.2rem;display:flex;align-items:center;gap:1rem}
+.profile-avatar{width:52px;height:52px;border-radius:50%;background:rgba(0,230,180,.1);
+  border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;
+  font-size:1.8rem;flex-shrink:0}
+.profile-main{min-width:0}
+.profile-name{font-weight:700;font-size:1rem}
+.profile-elo{font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:.9rem}
+.profile-stats{font-size:.72rem;color:var(--muted)}
+.sync-pending{display:inline-flex;align-items:center;gap:.35rem;margin-top:.35rem;
+  padding:.16rem .48rem;border-radius:999px;font-size:.6rem;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:700;background:rgba(255,209,102,.14);
+  border:1px solid rgba(255,209,102,.35);color:var(--warn)}
+.sync-count{font-size:.66rem;color:var(--muted);margin-top:.2rem}
+.profile-actions{margin-left:auto;display:flex;flex-direction:column;gap:.4rem}
+.sync-btn{background:rgba(255,209,102,.08);border-color:rgba(255,209,102,.35);color:var(--warn)}
+.sync-btn:hover{background:rgba(255,209,102,.16);border-color:rgba(255,209,102,.5)}
+.sync-btn:disabled{opacity:.65;cursor:not-allowed}
+
+@media(max-width:400px){
+  #login-card,#register-card{padding:2rem 1.3rem 1.8rem}
+  .option-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+
+<!-- ═══ LOGIN ═══ -->
+<div class="page active" id="login-page">
+  <div class="card" id="login-card">
+    <div class="logo-wrap">
+      <div class="logo-icon">♟</div>
+      <div class="logo-title">XADREZ ARENA</div>
+      <div class="logo-sub">Faça login para jogar</div>
+    </div>
+    <div class="field"><label>E-mail</label>
+      <div class="field-wrap"><span class="field-icon">◈</span>
+        <input type="email" id="l-email" placeholder="voce@exemplo.com" autocomplete="email">
+      </div></div>
+    <div class="field"><label>Senha</label>
+      <div class="field-wrap"><span class="field-icon">◉</span>
+        <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+        <button class="eye-btn" onclick="toggleEye('l-pass',this)">👁</button>
+      </div></div>
+    <button class="btn-primary" onclick="doLogin()">ENTRAR</button>
+    <div class="divider">ou</div>
+    <button class="btn-secondary" onclick="goPage('register-page')">CRIAR CONTA</button>
+    <div class="page-footer"><a onclick="goPage('ranking-page');buildRanking()">Ver ranking público</a></div>
+  </div>
+</div>
+
+<!-- ═══ REGISTER ═══ -->
+<div class="page" id="register-page">
+  <div class="card" id="register-card">
+    <div class="logo-wrap">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-title">NOVA CONTA</div>
+      <div class="logo-sub">Crie seu perfil de jogador</div>
+    </div>
+    <div class="field"><label>E-mail</label>
+      <div class="field-wrap"><span class="field-icon">◈</span>
+        <input type="email" id="r-email" placeholder="voce@exemplo.com" autocomplete="email" maxlength="120">
+      </div></div>
+    <div class="field"><label>Senha</label>
+      <div class="field-wrap"><span class="field-icon">◉</span>
+        <input type="password" id="r-pass" placeholder="mínimo 4 caracteres">
+        <button class="eye-btn" onclick="toggleEye('r-pass',this)">👁</button>
+      </div></div>
+    <div class="field"><label>Avatar (emoji)</label>
+      <div class="field-wrap"><span class="field-icon">★</span>
+        <input type="text" id="r-emoji" placeholder="♟ 👑 🤖 🦁" maxlength="2">
+      </div></div>
+    <button class="btn-primary" onclick="doRegister()">CRIAR CONTA</button>
+    <div class="divider">ou</div>
+    <button class="btn-secondary" onclick="goPage('login-page')">JÁ TENHO CONTA</button>
+  </div>
+</div>
+
+<!-- ═══ RANKING ═══ -->
+<div class="page page-full" id="ranking-page">
+  <div class="card" id="ranking-card">
+    <div class="rank-header">
+      <button class="back-btn" onclick="goBack()">←</button>
+      <div>
+        <script>
+          const dataAtual = new Date();
+          const anoAtual = dataAtual.getFullYear();
+          document.write('<div class="rank-title">RANKING GLOBAL</div>');
+          document.write('<div class="rank-subtitle">Temporada ' + anoAtual + '</div>');
+        </script>
+      </div>
+      <div class="live-badge"><div class="live-dot"></div>AO VIVO</div>
+    </div>
+    <div id="profile-section"></div>
+    <div class="rank-stats">
+      <div class="stat-pill"><div class="stat-val" id="st-players">—</div><div class="stat-lbl">Jogadores</div></div>
+      <div class="stat-pill"><div class="stat-val" id="st-games">—</div><div class="stat-lbl">Partidas</div></div>
+      <div class="stat-pill"><div class="stat-val" id="st-topelo">—</div><div class="stat-lbl">ELO Máx</div></div>
+    </div>
+    <div class="podium" id="podium"></div>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" type="text" placeholder="Buscar jogador..." oninput="filterRank(this.value)">
+    </div>
+    <div class="rank-table-wrap">
+      <table><thead><tr>
+        <th>#</th><th>Jogador</th><th>Nível</th><th>V</th><th>D</th><th>ELO</th>
+      </tr></thead>
+      <tbody id="rank-body"></tbody></table>
+    </div>
+    <div style="margin-top:1rem">
+      <button class="btn-primary" onclick="goMenu()" id="play-btn" style="display:none">▶ JOGAR AGORA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MENU ═══ -->
+<div class="page page-full" id="menu-page">
+  <div class="card" id="menu-card">
+    <div class="menu-header">
+      <button class="back-btn" onclick="goPage('ranking-page');buildRanking()">←</button>
+      <div class="menu-title">⚙ CONFIGURAR PARTIDA</div>
+    </div>
+
+    <div class="section-label">Modo de Jogo</div>
+    <div class="option-grid" style="margin-bottom:1.4rem">
+      <div class="opt-btn selected" onclick="setMode('ai',this)" id="mode-ai">
+        <div class="opt-icon">🤖</div><div class="opt-label">vs IA</div><div class="opt-sub">Desafie a máquina</div>
+      </div>
+      <div class="opt-btn" onclick="setMode('2p',this)" id="mode-2p">
+        <div class="opt-icon">👥</div><div class="opt-label">2 Jogadores</div><div class="opt-sub">Local multiplayer</div>
+      </div>
+    </div>
+
+    <div id="ai-options">
+      <div class="section-label">Dificuldade</div>
+      <div class="diff-grid" id="diff-grid"></div>
+    </div>
+
+    <div class="section-label">Jogar com</div>
+    <div class="option-grid" style="margin-bottom:1.4rem">
+      <div class="opt-btn selected" onclick="setColor('white',this)" id="color-white">
+        <div class="opt-icon">⬜</div><div class="opt-label">Brancas</div><div class="opt-sub">Você começa</div>
+      </div>
+      <div class="opt-btn" onclick="setColor('black',this)" id="color-black">
+        <div class="opt-icon">⬛</div><div class="opt-label">Pretas</div><div class="opt-sub">IA começa</div>
+      </div>
+    </div>
+
+    <div class="section-label">Tema do Tabuleiro</div>
+    <div class="theme-row" id="theme-row"></div>
+
+    <button class="btn-primary" onclick="startGame()" style="margin-top:.8rem">▶ INICIAR PARTIDA</button>
+  </div>
+</div>
+
+<!-- ═══ GAME ═══ -->
+<div class="page page-full" id="game-page">
+  <div id="game-wrap">
+    <div class="game-top">
+      <button class="back-btn" onclick="confirmResign()">←</button>
+      <div class="game-title">♟ ARENA</div>
+      <div class="turn-badge white" id="turn-badge">Brancas ▶</div>
+      <div id="check-badge" style="display:none" class="check-badge">⚠ XEQUE</div>
+      <div id="ai-think" class="ai-thinking" style="display:none">IA pensando…</div>
+    </div>
+
+    <!-- Opponent captured + name -->
+    <div style="display:flex;align-items:center;gap:.5rem;padding:.1rem .4rem;flex-shrink:0">
+      <span id="opp-avatar" style="font-size:1.1rem">🤖</span>
+      <span id="opp-name" style="font-size:.78rem;color:var(--muted)">IA</span>
+      <div class="captured-row" id="cap-opp"></div>
+    </div>
+
+    <div id="board-container"><div id="chess-board"></div></div>
+
+    <!-- Player captured + name -->
+    <div style="display:flex;align-items:center;gap:.5rem;padding:.1rem .4rem;flex-shrink:0">
+      <span id="me-avatar" style="font-size:1.1rem">♟</span>
+      <span id="me-name" style="font-size:.78rem;color:var(--muted)">Você</span>
+      <div class="captured-row" id="cap-me"></div>
+    </div>
+
+    <div class="info-panel">
+      <div class="info-pill"><div class="info-val" id="info-move">1</div><div class="info-lbl">Jogada</div></div>
+      <div class="info-pill"><div class="info-val" id="info-diff">—</div><div class="info-lbl">Dificuldade</div></div>
+      <div class="info-pill"><div class="info-val" id="info-elo">—</div><div class="info-lbl">Meu ELO</div></div>
+    </div>
+
+    <div class="action-row">
+      <button class="act-btn" onclick="flipBoard()">⟺ Virar</button>
+      <button class="act-btn" onclick="undoMove()">↩ Desfazer</button>
+      <button class="act-btn resign" onclick="confirmResign()">⚑ Desistir</button>
+    </div>
+
+    <div class="history-wrap"><div class="history-inner" id="move-history"></div></div>
+  </div>
+</div>
+
+<!-- Promotion modal -->
+<div id="promo-modal" class="hidden">
+  <div class="promo-card">
+    <div class="promo-title">PROMOVER PEÃO</div>
+    <div class="promo-pieces" id="promo-pieces"></div>
+  </div>
+</div>
+
+<!-- Game over modal -->
+<div id="gameover-modal" class="hidden">
+  <div class="gameover-card">
+    <div class="gameover-icon" id="go-icon">🏆</div>
+    <div class="gameover-title" id="go-title">VITÓRIA!</div>
+    <div class="gameover-sub" id="go-sub">Excelente partida</div>
+    <div class="gameover-elo" id="go-elo"></div>
+    <div class="gameover-btns">
+      <button class="btn-secondary" onclick="closeGameOver(false)" style="flex:1">RANKING</button>
+      <button class="btn-primary" onclick="closeGameOver(true)" style="flex:1">JOGAR DE NOVO</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ════════════════════════════════════════════
+   BACKGROUND CANVAS
+════════════════════════════════════════════ */
+const bgCanvas = document.getElementById('bg-canvas');
+const bctx = bgCanvas.getContext('2d');
+const dots = Array.from({length:55},()=>({
+  x:Math.random(), y:Math.random(),
+  size:Math.random()*1.3+.4,
+  speed:(Math.random()*.14+.04)*(Math.random()>.5?1:-1),
+  op:Math.random()*.3+.05
+}));
+function resizeBg(){bgCanvas.width=innerWidth;bgCanvas.height=innerHeight}
+resizeBg(); addEventListener('resize',resizeBg);
+function drawBg(t){
+  const W=bgCanvas.width,H=bgCanvas.height;
+  bctx.clearRect(0,0,W,H);
+  const sq=Math.floor(Math.min(W,H)/10);
+  for(let r=0;r*sq<H+sq;r++) for(let c=0;c*sq<W+sq;c++)
+    if((r+c)%2===0){bctx.fillStyle='rgba(0,230,180,.016)';bctx.fillRect(c*sq,r*sq,sq,sq)}
+  dots.forEach(d=>{
+    d.y+=d.speed*.00014; if(d.y>1)d.y=0; if(d.y<0)d.y=1;
+    bctx.beginPath();bctx.arc(d.x*W,d.y*H,d.size,0,Math.PI*2);
+    bctx.fillStyle=`rgba(0,230,180,${d.op})`;bctx.fill();
+  });
+  [[W*.2,H*.25,W*.32,'rgba(0,230,180,.055)',.0004,.0003],
+   [W*.8,H*.7, W*.28,'rgba(108,99,255,.045)',.0003,.0004]].forEach(([ox,oy,r,c,fx,fy])=>{
+    const x=ox+Math.sin(t*fx)*W*.055, y=oy+Math.cos(t*fy)*H*.045;
+    const g=bctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,c);g.addColorStop(1,'transparent');
+    bctx.fillStyle=g;bctx.fillRect(0,0,W,H);
+  });
+  requestAnimationFrame(drawBg);
+}
+requestAnimationFrame(drawBg);
+
+/* ════════════════════════════════════════════
+   CRUD — SUPABASE (Auth + users)
+════════════════════════════════════════════ */
+const TOKEN_KEY='xa_token';
+const USER_KEY='xa_me';
+const SUPABASE_URL='https://zgxmjqovtgkkwunqbxop.supabase.co'; // COLE_AQUI_SEU_SUPABASE_URL
+const SUPABASE_ANON_KEY='sb_publishable_qCQLn9cKW6xaKyqYfLIByQ__XJNnwB-'; //COLE_AQUI_SUA_SUPABASE_ANON_KEY
+const SUPABASE_USERS_TABLE='users';
+const SUPABASE_AUTH_EMAIL_DOMAIN='xadrezarena.com';
+const USERNAME_COLUMN_CANDIDATES=['username','user','usuario','nome','nome_usuario','nick'];
+const LOCAL_USERS_KEY='xa_local_users';
+const SYNC_COOLDOWN_MS=30000;
+const SIGNUP_STATUS_CACHE_MS=20000;
+let resolvedUsernameCol=null;
+let usernameColChecked=false;
+let usernameColProbeLastError='';
+let syncBusy=false;
+let syncCooldownUntil=0;
+let syncCooldownTimer=null;
+let signupStatusCache=null;
+let signupStatusCacheAt=0;
+
+function isSupabaseConfigured(){
+  return !!(
+    window.supabase&&
+    SUPABASE_URL.startsWith('https://')&&
+    !SUPABASE_URL.includes('COLE_AQUI')&&
+    SUPABASE_ANON_KEY&&
+    !SUPABASE_ANON_KEY.includes('COLE_AQUI')
+  );
+}
+
+const supabaseClient=isSupabaseConfigured()
+  ? window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
+      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+    })
+  : null;
+
+function supabaseConfigError(){
+  return 'Configure SUPABASE_URL e SUPABASE_ANON_KEY para habilitar cadastro/login.';
+}
+function readUsernameFromRow(row){
+  for(const col of USERNAME_COLUMN_CANDIDATES){
+    const value=row?.[col];
+    if(typeof value==='string'&&value.trim()) return value;
+  }
+  const emailFallback=normalizeEmailKey(row?.auth_email||row?.email||'');
+  if(emailFallback) return usernameFromEmail(emailFallback);
+  return 'jogador';
+}
+async function ensureUsernameColumn(force=false){
+  if(!supabaseClient) return null;
+  if(!force&&usernameColChecked&&resolvedUsernameCol) return resolvedUsernameCol;
+  usernameColProbeLastError='';
+
+  for(const col of USERNAME_COLUMN_CANDIDATES){
+    const probe=await supabaseClient
+      .from(SUPABASE_USERS_TABLE)
+      .select(col)
+      .limit(1);
+    if(!probe.error){
+      resolvedUsernameCol=col;
+      usernameColChecked=true;
+      return resolvedUsernameCol;
+    }
+    usernameColProbeLastError=probe.error.message||String(probe.error);
+  }
+  usernameColChecked=true;
+  return null;
+}
+function usernameColumnResolutionError(){
+  if(usernameColProbeLastError){
+    return `Não foi possível identificar a coluna de usuário na tabela users. Detalhe: ${usernameColProbeLastError}`;
+  }
+  return 'Não foi possível identificar a coluna de usuário na tabela users (ex: username ou user).';
+}
+function normalizeEmailKey(email){
+  return String(email||'').trim().toLowerCase();
+}
+function isValidEmail(email){
+  const value=normalizeEmailKey(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+}
+function shortHash(text){
+  let h=0;
+  const src=String(text||'');
+  for(let i=0;i<src.length;i++) h=(h*31+src.charCodeAt(i))>>>0;
+  return h.toString(36);
+}
+function usernameFromEmail(email){
+  const normalized=normalizeEmailKey(email);
+  const localPart=(normalized.split('@')[0]||'jogador')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9_]+/gi,'_')
+    .replace(/^_+|_+$/g,'')
+    .toLowerCase();
+  const base=(localPart||'jogador').slice(0,13);
+  const suffix=shortHash(normalized).slice(0,6).padEnd(6,'0');
+  const candidate=`${base}_${suffix}`.slice(0,20);
+  return candidate.length>=3?candidate:`jogador_${suffix}`;
+}
+function getSafeAuthEmailDomain(){
+  const domain=String(SUPABASE_AUTH_EMAIL_DOMAIN||'example.com').trim().toLowerCase();
+  const rx=/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+  return rx.test(domain)?domain:'example.com';
+}
+function normalizeUserForEmail(username){
+  const raw=String(username||'')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'.')
+    .replace(/^\.+|\.+$/g,'');
+  return raw.slice(0,48)||'user';
+}
+function authEmailFromUsername(username){
+  const localRaw=`u.${normalizeUserForEmail(username)}`;
+  const localPart=localRaw.slice(0,64)||`u.${Date.now().toString(36)}`;
+  return `${localPart}@${getSafeAuthEmailDomain()}`;
+}
+function resolveLocalAuthEmail(row){
+  const direct=normalizeEmailKey(row?.email||row?.auth_email||'');
+  if(direct) return direct;
+  if(row?.username) return normalizeEmailKey(authEmailFromUsername(row.username));
+  return '';
+}
+function loadLocalUsers(){
+  try{
+    const parsed=JSON.parse(localStorage.getItem(LOCAL_USERS_KEY)||'[]');
+    return Array.isArray(parsed)?parsed:[];
+  }catch(_e){
+    return[];
+  }
+}
+function saveLocalUsers(users){
+  localStorage.setItem(LOCAL_USERS_KEY,JSON.stringify(users));
+}
+function normalizeUsernameKey(username){
+  return String(username||'').trim().toLowerCase();
+}
+function userIdentityKey(user){
+  const emailKey=normalizeEmailKey(user?.email||user?.auth_email||'');
+  if(emailKey) return `email:${emailKey}`;
+  return `name:${normalizeUsernameKey(user?.username||'')}`;
+}
+function makeLocalUserId(){
+  if(globalThis.crypto?.randomUUID) return`local-${globalThis.crypto.randomUUID()}`;
+  return`local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+}
+function toPublicLocalUser(row){
+  if(!row) return null;
+  const email=resolveLocalAuthEmail(row);
+  const username=String(row.username||'').trim()||(email?usernameFromEmail(email):'jogador');
+  return{
+    id:row.id,
+    username,
+    email,
+    emoji:row.emoji||'♟',
+    elo:row.elo??800,
+    wins:row.wins??0,
+    losses:row.losses??0,
+    draws:row.draws??0,
+    totalGames:row.totalGames??0,
+    createdAt:row.createdAt||new Date().toISOString(),
+    localOnly:true,
+    pendingSync:!!row.pendingSync
+  };
+}
+function getPendingLocalUsers(){
+  return loadLocalUsers().filter(u=>u.pendingSync);
+}
+function findLocalUserByEmail(email){
+  const key=normalizeEmailKey(email);
+  return loadLocalUsers().find(u=>resolveLocalAuthEmail(u)===key)||null;
+}
+function createLocalUser(email,password,emoji,reason=''){
+  const users=loadLocalUsers();
+  const cleanEmail=normalizeEmailKey(email);
+  if(!isValidEmail(cleanEmail)) return{err:'Informe um e-mail válido.'};
+  if(users.some(u=>resolveLocalAuthEmail(u)===cleanEmail)){
+    return{err:'E-mail já existe no cadastro local.'};
+  }
+  const username=usernameFromEmail(cleanEmail);
+  const row={
+    id:makeLocalUserId(),
+    username,
+    email:cleanEmail,
+    password,
+    auth_email:cleanEmail,
+    emoji:emoji||'♟',
+    elo:800,
+    wins:0,
+    losses:0,
+    draws:0,
+    totalGames:0,
+    createdAt:new Date().toISOString(),
+    pendingSync:true,
+    localOnly:true,
+    syncReason:reason||'',
+    lastSyncError:''
+  };
+  users.push(row);
+  saveLocalUsers(users);
+  return{user:toPublicLocalUser(row)};
+}
+function loginLocalUser(email,password){
+  const row=findLocalUserByEmail(email);
+  if(!row||row.password!==password) return null;
+  return{user:toPublicLocalUser(row),local:true};
+}
+function updateLocalUser(id,updates){
+  const users=loadLocalUsers();
+  const idx=users.findIndex(u=>u.id===id);
+  if(idx===-1) return null;
+  users[idx]={...users[idx],...updates,pendingSync:true,localOnly:true};
+  saveLocalUsers(users);
+  return toPublicLocalUser(users[idx]);
+}
+function deleteLocalUser(id){
+  const users=loadLocalUsers();
+  const next=users.filter(u=>u.id!==id);
+  if(next.length===users.length) return false;
+  saveLocalUsers(next);
+  return true;
+}
+function shouldFallbackToLocal(text=''){
+  const msg=String(text||'').toLowerCase();
+  if(!msg) return true;
+  return(
+    msg.includes('rate limit')||
+    msg.includes('signups not allowed')||
+    msg.includes('signup is disabled')||
+    msg.includes('email signups are disabled')||
+    msg.includes('network')||
+    msg.includes('failed to fetch')||
+    msg.includes('fetch')||
+    msg.includes('connection')||
+    msg.includes('timeout')||
+    msg.includes('service unavailable')
+  );
+}
+function isSignupsDisabledMessage(text=''){
+  const msg=String(text||'').toLowerCase();
+  return(
+    msg.includes('signups not allowed')||
+    msg.includes('signup is disabled')||
+    msg.includes('email signups are disabled')||
+    msg.includes('disable_signup')
+  );
+}
+function isRateLimitMessage(text=''){
+  const msg=String(text||'').toLowerCase();
+  return msg.includes('rate limit')||msg.includes('too many requests');
+}
+async function getSupabaseSignupStatus(){
+  if(!supabaseClient){
+    return{known:false,disabled:false,error:'Supabase indisponível'};
+  }
+  try{
+    const res=await fetch(`${SUPABASE_URL}/auth/v1/settings`,{
+      headers:{
+        apikey:SUPABASE_ANON_KEY,
+        Authorization:`Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    if(!res.ok){
+      return{known:false,disabled:false,error:`HTTP ${res.status}`};
+    }
+    const cfg=await res.json().catch(()=>null);
+    const disableSignup=
+      typeof cfg?.disable_signup==='boolean'
+        ? cfg.disable_signup
+        : (typeof cfg?.security?.disable_signup==='boolean' ? cfg.security.disable_signup : null);
+    if(typeof disableSignup==='boolean'){
+      return{known:true,disabled:disableSignup,error:''};
+    }
+    return{known:false,disabled:false,error:'Campo disable_signup não retornado'};
+  }catch(err){
+    return{known:false,disabled:false,error:err?.message||String(err)};
+  }
+}
+async function getSupabaseSignupStatusCached(force=false){
+  if(!force&&signupStatusCache&&(Date.now()-signupStatusCacheAt)<SIGNUP_STATUS_CACHE_MS){
+    return signupStatusCache;
+  }
+  const status=await getSupabaseSignupStatus();
+  signupStatusCache=status;
+  signupStatusCacheAt=Date.now();
+  return status;
+}
+async function testSupabaseConnection(){
+  const lines=[];
+  const add=(ok,label,detail='')=>lines.push(`${ok?'[OK]':'[ERRO]'} ${label}${detail?` - ${detail}`:''}`);
+  let okAll=true;
+
+  if(!supabaseClient){
+    add(false,'Cliente Supabase',supabaseConfigError());
+    okAll=false;
+    const report=['Diagnostico Supabase',...lines].join('\n');
+    console.log(report);
+    alert(report);
+    toast('Diagnóstico concluído com erros.','err');
+    return{ok:false,report,lines};
+  }
+
+  add(true,'Configuração',SUPABASE_URL);
+
+  const signupStatus=await getSupabaseSignupStatusCached(true);
+  if(signupStatus.known){
+    if(signupStatus.disabled){
+      okAll=false;
+      add(false,'Signups','desativados no Supabase (disable_signup=true)');
+    }else{
+      add(true,'Signups','ativados');
+    }
+  }else{
+    if(signupStatus.error){
+      okAll=false;
+      add(false,'Auth settings',signupStatus.error);
+    }else{
+      add(true,'Auth settings','acesso OK');
+    }
+  }
+  try{
+    await supabaseClient.auth.getSession();
+  }catch(err){
+    okAll=false;
+    add(false,'Auth settings',err?.message||String(err));
+  }
+
+  const {error:sessionErr}=await supabaseClient.auth.getSession();
+  if(sessionErr){
+    okAll=false;
+    add(false,'Sessão auth',sessionErr.message);
+  }else add(true,'Sessão auth','consulta OK');
+
+  const {error:usersErr}=await supabaseClient
+    .from(SUPABASE_USERS_TABLE)
+    .select('id')
+    .limit(1);
+  if(usersErr){
+    okAll=false;
+    add(false,'Tabela users',usersErr.message);
+  }else add(true,'Tabela users','consulta OK');
+
+  const col=await ensureUsernameColumn(true);
+  if(col) add(true,'Coluna de usuário',col);
+  else{
+    okAll=false;
+    add(false,'Coluna de usuário',usernameColumnResolutionError());
+  }
+
+  add(true,'Pendentes locais',String(getPendingLocalUsers().length));
+
+  const report=['Diagnostico Supabase',...lines].join('\n');
+  console.log(report);
+  alert(report);
+  toast(okAll?'Diagnóstico concluído (OK).':'Diagnóstico concluído com alertas.',okAll?'ok':'err');
+  return{ok:okAll,report,lines};
+}
+function mapRowToUser(row){
+  if(!row) return null;
+  const email=normalizeEmailKey(row.auth_email||row.email||'');
+  const uname=readUsernameFromRow(row);
+  return{
+    id:row.id,
+    username:uname,
+    email,
+    emoji:row.emoji||'♟',
+    elo:row.elo??800,
+    wins:row.wins??0,
+    losses:row.losses??0,
+    draws:row.draws??0,
+    totalGames:row.total_games??0,
+    createdAt:row.created_at||new Date().toISOString()
+  };
+}
+function mapUpdatePayload(updates){
+  const payload={};
+  if('username' in updates){
+    const usernameCol=resolvedUsernameCol||USERNAME_COLUMN_CANDIDATES[0];
+    payload[usernameCol]=String(updates.username||'').trim();
+  }
+  if('emoji' in updates) payload.emoji=updates.emoji||'♟';
+  if('elo' in updates) payload.elo=updates.elo;
+  if('wins' in updates) payload.wins=updates.wins;
+  if('losses' in updates) payload.losses=updates.losses;
+  if('draws' in updates) payload.draws=updates.draws;
+  if('totalGames' in updates) payload.total_games=updates.totalGames;
+  return payload;
+}
+
+const DB = {
+  async users(){
+    const pendingLocal=getPendingLocalUsers().map(toPublicLocalUser);
+    if(!supabaseClient){
+      return[...pendingLocal].sort((a,b)=>b.elo-a.elo);
+    }
+    const {data,error}=await supabaseClient
+      .from(SUPABASE_USERS_TABLE)
+      .select('*')
+      .order('elo',{ascending:false});
+    if(error){
+      return[...pendingLocal].sort((a,b)=>b.elo-a.elo);
+    }
+    const remote=(data||[]).map(mapRowToUser);
+    const remoteKeys=new Set(remote.map(userIdentityKey));
+    const merged=[...remote];
+    pendingLocal.forEach(u=>{
+      if(!remoteKeys.has(userIdentityKey(u))) merged.push(u);
+    });
+    return merged.sort((a,b)=>b.elo-a.elo);
+  },
+  async userById(id){
+    if(String(id||'').startsWith('local-')){
+      const local=loadLocalUsers().find(u=>u.id===id);
+      return local?{user:toPublicLocalUser(local)}:{err:'Usuário não encontrado'};
+    }
+    if(!supabaseClient) return{err:supabaseConfigError()};
+    const {data,error}=await supabaseClient
+      .from(SUPABASE_USERS_TABLE)
+      .select('*')
+      .eq('id',id)
+      .maybeSingle();
+    if(error||!data) return{err:error?.message||'Usuário não encontrado'};
+    return{user:mapRowToUser(data)};
+  },
+  token(){return localStorage.getItem(TOKEN_KEY)||''},
+  setToken(token){
+    if(token) localStorage.setItem(TOKEN_KEY,token);
+    else localStorage.removeItem(TOKEN_KEY);
+  },
+  current(){return JSON.parse(localStorage.getItem(USER_KEY)||'null')},
+  setCurrent(u){localStorage.setItem(USER_KEY,JSON.stringify(u))},
+  clearCurrent(){
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    if(supabaseClient) supabaseClient.auth.signOut().catch(()=>{});
+  },
+  async refreshCurrent(){
+    const me=this.current();
+    if(me?.localOnly) return me;
+    if(!supabaseClient) return me;
+
+    const {data:sessionData,error:sessionError}=await supabaseClient.auth.getSession();
+    const session=sessionData?.session;
+    if(sessionError||!session){
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
+
+    this.setToken(session.access_token||'');
+    const {data,error}=await supabaseClient
+      .from(SUPABASE_USERS_TABLE)
+      .select('*')
+      .eq('id',session.user.id)
+      .maybeSingle();
+
+    if(error||!data){
+      this.setCurrent(me||null);
+      return me||null;
+    }
+    const mapped=mapRowToUser(data);
+    this.setCurrent(mapped);
+    return mapped;
+  }
+};
+
+async function register(email,password,emoji){
+  const cleanEmail=normalizeEmailKey(email);
+  const cleanEmoji=String(emoji||'♟').trim()||'♟';
+  if(!isValidEmail(cleanEmail)) return{err:'Informe um e-mail válido'};
+  if(!password||password.length<4) return{err:'Senha precisa ter 4+ caracteres'};
+
+  const localFallback=(reason='')=>{
+    const local=createLocalUser(cleanEmail,password,cleanEmoji,reason);
+    if(local.err) return{err:local.err};
+    DB.setToken('');
+    DB.setCurrent(local.user);
+    return{user:local.user,local:true,pendingSync:true,info:reason};
+  };
+
+  if(!supabaseClient) return localFallback('Supabase indisponível no momento.');
+
+  const usernameCol=await ensureUsernameColumn();
+  if(!usernameCol){
+    const reason=usernameColumnResolutionError();
+    if(shouldFallbackToLocal(reason)) return localFallback(reason);
+    return{err:reason};
+  }
+
+  const {data:exists,error:existsErr}=await supabaseClient
+    .from(SUPABASE_USERS_TABLE)
+    .select('id')
+    .ilike('auth_email',cleanEmail)
+    .limit(1);
+  if(existsErr){
+    if(shouldFallbackToLocal(existsErr.message)) return localFallback(existsErr.message);
+    return{err:`Erro ao validar e-mail: ${existsErr.message}`};
+  }
+  if(exists?.length) return{err:'E-mail já cadastrado'};
+
+  const authEmail=cleanEmail;
+  const trySignInExisting=async()=>{
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email:authEmail,password});
+    if(error||!data?.user?.id) return null;
+    return data;
+  };
+
+  let authUserId='';
+  let authSession=null;
+  const existingSignIn=await trySignInExisting();
+  if(existingSignIn){
+    authUserId=existingSignIn.user.id;
+    authSession=existingSignIn.session||null;
+  }else{
+    const {data:signData,error:signErr}=await supabaseClient.auth.signUp({email:authEmail,password});
+    if(signErr){
+      const msg=String(signErr.message||'').toLowerCase();
+      if(msg.includes('rate limit')){
+        const signedAfterLimit=await trySignInExisting();
+        if(signedAfterLimit){
+          authUserId=signedAfterLimit.user.id;
+          authSession=signedAfterLimit.session||null;
+        }else{
+          return localFallback('Rate limit no Supabase.');
+        }
+      }else if(msg.includes('signups not allowed')||msg.includes('signup is disabled')||msg.includes('email signups are disabled')){
+        const signedDisabled=await trySignInExisting();
+        if(signedDisabled){
+          authUserId=signedDisabled.user.id;
+          authSession=signedDisabled.session||null;
+        }else{
+          return localFallback('Signups desativados no Supabase.');
+        }
+      }else if(msg.includes('already registered')||msg.includes('already been registered')||msg.includes('user already')){
+        const signed=await trySignInExisting();
+        if(!signed) return{err:'Usuário já cadastrado no Auth com outra senha.'};
+        authUserId=signed.user.id;
+        authSession=signed.session||null;
+      }else{
+        if(shouldFallbackToLocal(signErr.message)) return localFallback(signErr.message);
+        return{err:`Erro no cadastro: ${signErr.message}`};
+      }
+    }else{
+      if(!signData.user?.id) return localFallback('Não foi possível criar o usuário no Auth.');
+      authUserId=signData.user.id;
+      authSession=signData.session||null;
+      if(!authSession){
+        const signed=await trySignInExisting();
+        if(signed) authSession=signed.session||null;
+      }
+      if(!authSession){
+        return localFallback('Sem sessão ativa no Supabase após o cadastro.');
+      }
+    }
+  }
+
+  const profilePayload={
+    id:authUserId,
+    [usernameCol]:usernameFromEmail(authEmail),
+    auth_email:authEmail,
+    emoji:cleanEmoji,
+    elo:800,
+    wins:0,
+    losses:0,
+    draws:0,
+    total_games:0
+  };
+  const {data:existingProfile,error:existingProfileErr}=await supabaseClient
+    .from(SUPABASE_USERS_TABLE)
+    .select('*')
+    .eq('id',authUserId)
+    .maybeSingle();
+  if(existingProfileErr){
+    if(shouldFallbackToLocal(existingProfileErr.message)) return localFallback(existingProfileErr.message);
+    return{err:`Conta criada, mas falhou ao verificar perfil: ${existingProfileErr.message}`};
+  }
+
+  let profileRow=existingProfile;
+  if(!profileRow){
+    const {data:inserted,error:profileErr}=await supabaseClient
+      .from(SUPABASE_USERS_TABLE)
+      .insert(profilePayload)
+      .select('*')
+      .single();
+    if(profileErr){
+      if(shouldFallbackToLocal(profileErr.message)) return localFallback(profileErr.message);
+      return{err:`Conta criada, mas falhou ao salvar perfil: ${profileErr.message}`};
+    }
+    profileRow=inserted;
+  }
+
+  DB.setToken(authSession?.access_token||'');
+  const mapped=mapRowToUser(profileRow);
+  DB.setCurrent(mapped);
+  return{user:mapped};
+}
+async function loginUser(email,password){
+  const cleanEmail=normalizeEmailKey(email);
+  if(!cleanEmail||!password) return{err:'Preencha e-mail e senha'};
+  if(!isValidEmail(cleanEmail)) return{err:'Informe um e-mail válido'};
+  const local=loginLocalUser(cleanEmail,password);
+
+  if(!supabaseClient){
+    if(local){DB.setToken('');DB.setCurrent(local.user);return local;}
+    return{err:'Usuário ou senha inválidos'};
+  }
+
+  const {data:signData,error:signErr}=await supabaseClient.auth.signInWithPassword({
+    email:cleanEmail,
+    password
+  });
+  if(signErr){
+    if(local){DB.setToken('');DB.setCurrent(local.user);return local;}
+    return{err:'Usuário ou senha inválidos'};
+  }
+
+  DB.setToken(signData.session?.access_token||'');
+  const authUserId=signData.user?.id;
+  if(!authUserId){
+    if(local){DB.setToken('');DB.setCurrent(local.user);return local;}
+    return{err:'Sessão inválida no Auth'};
+  }
+
+  const {data:userRow,error:userErr}=await supabaseClient
+    .from(SUPABASE_USERS_TABLE)
+    .select('*')
+    .eq('id',authUserId)
+    .maybeSingle();
+  if(userErr){
+    if(local){DB.setToken('');DB.setCurrent(local.user);return local;}
+    return{err:`Falha ao carregar perfil: ${userErr.message}`};
+  }
+
+  let profileRow=userRow;
+  if(!profileRow){
+    const usernameCol=await ensureUsernameColumn();
+    if(!usernameCol){
+      if(local){DB.setToken('');DB.setCurrent(local.user);return local;}
+      return{err:usernameColumnResolutionError()};
+    }
+    const payload={
+      id:authUserId,
+      [usernameCol]:usernameFromEmail(cleanEmail),
+      auth_email:cleanEmail,
+      emoji:'♟',
+      elo:800,
+      wins:0,
+      losses:0,
+      draws:0,
+      total_games:0
+    };
+    const {data:inserted,error:insertErr}=await supabaseClient
+      .from(SUPABASE_USERS_TABLE)
+      .insert(payload)
+      .select('*')
+      .single();
+    if(insertErr){
+      if(local){DB.setToken('');DB.setCurrent(local.user);return local;}
+      return{err:`Falha ao criar perfil: ${insertErr.message}`};
+    }
+    profileRow=inserted;
+  }
+
+  const mapped=mapRowToUser(profileRow);
+  DB.setCurrent(mapped);
+  return{user:mapped};
+}
+async function updateUser(id,updates){
+  if(String(id||'').startsWith('local-')){
+    const updated=updateLocalUser(id,updates||{});
+    if(updated&&DB.current()?.id===id) DB.setCurrent(updated);
+    return updated;
+  }
+  if(!id||!supabaseClient) return null;
+  await ensureUsernameColumn();
+  const payload=mapUpdatePayload(updates||{});
+  if(!Object.keys(payload).length) return DB.current();
+
+  const {data,error}=await supabaseClient
+    .from(SUPABASE_USERS_TABLE)
+    .update(payload)
+    .eq('id',id)
+    .select('*')
+    .maybeSingle();
+
+  if(error||!data) return null;
+  const mapped=mapRowToUser(data);
+  const me=DB.current();
+  if(me&&me.id===id) DB.setCurrent(mapped);
+  return mapped;
+}
+async function deleteUserById(id){
+  if(String(id||'').startsWith('local-')){
+    deleteLocalUser(id);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    return{ok:true};
+  }
+  if(!supabaseClient) return{err:supabaseConfigError()};
+  const {data:userData,error:userErr}=await supabaseClient.auth.getUser();
+  const authUser=userData?.user;
+  if(userErr||!authUser||authUser.id!==id) return{err:'Sessão inválida para exclusão'};
+
+  const {error:rpcErr}=await supabaseClient.rpc('delete_my_account');
+  if(rpcErr){
+    const {error:profileErr}=await supabaseClient
+      .from(SUPABASE_USERS_TABLE)
+      .delete()
+      .eq('id',id);
+    if(profileErr) return{err:`Falha ao excluir conta: ${profileErr.message}`};
+  }
+
+  await supabaseClient.auth.signOut();
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  return{ok:true};
+}
+
+function getSyncButton(){
+  return document.getElementById('sync-now-btn');
+}
+function updateSyncButtonState(){
+  const btn=getSyncButton();
+  if(!btn) return;
+  const now=Date.now();
+  const inCooldown=now<syncCooldownUntil;
+  const secLeft=Math.ceil((syncCooldownUntil-now)/1000);
+  if(syncBusy){
+    btn.disabled=true;
+    btn.textContent='Sincronizando...';
+    return;
+  }
+  if(inCooldown){
+    btn.disabled=true;
+    btn.textContent=`Aguarde ${secLeft}s`;
+    return;
+  }
+  btn.disabled=false;
+  btn.textContent='Sincronizar agora';
+}
+function startSyncCooldown(){
+  syncCooldownUntil=Date.now()+SYNC_COOLDOWN_MS;
+  clearInterval(syncCooldownTimer);
+  updateSyncButtonState();
+  syncCooldownTimer=setInterval(()=>{
+    updateSyncButtonState();
+    if(Date.now()>=syncCooldownUntil){
+      clearInterval(syncCooldownTimer);
+      syncCooldownTimer=null;
+      updateSyncButtonState();
+    }
+  },300);
+}
+async function syncLocalUserRecord(localRecord,usernameCol){
+  const authEmail=resolveLocalAuthEmail(localRecord);
+  const password=localRecord.password||'';
+  const profileUsername=String(localRecord.username||'').trim()||usernameFromEmail(authEmail);
+  if(!isValidEmail(authEmail)) return{ok:false,err:'E-mail local inválido para sincronizar.'};
+  if(!password) return{ok:false,err:'Senha local não encontrada para sincronizar.'};
+
+  const trySignIn=async()=>supabaseClient.auth.signInWithPassword({email:authEmail,password});
+  let signIn=await trySignIn();
+  let authData=signIn.data;
+
+  if(signIn.error||!signIn.data?.user?.id){
+    const msg=String(signIn.error?.message||'').toLowerCase();
+    if(
+      msg.includes('invalid login credentials')||
+      msg.includes('invalid credentials')||
+      msg.includes('user not found')||
+      msg.includes('email not confirmed')
+    ){
+      const signUp=await supabaseClient.auth.signUp({email:authEmail,password});
+      if(signUp.error){
+        const suMsg=String(signUp.error.message||'').toLowerCase();
+        if(isSignupsDisabledMessage(suMsg)){
+          return{ok:false,code:'SIGNUPS_DISABLED',err:'Signups desativados no Supabase. Ative em Authentication > Providers > Email > Enable email signups.'};
+        }else if(isRateLimitMessage(suMsg)){
+          return{ok:false,code:'RATE_LIMIT',err:'Rate limit do Supabase atingido. Aguarde e tente sincronizar novamente.'};
+        }else if(suMsg.includes('already registered')||suMsg.includes('already been registered')||suMsg.includes('user already')){
+          const retry=await trySignIn();
+          if(retry.error||!retry.data?.user?.id) return{ok:false,err:retry.error?.message||'Falha ao autenticar conta existente.'};
+          authData=retry.data;
+        }else return{ok:false,err:signUp.error.message};
+      }else{
+        authData=signUp.data;
+        if(!authData?.session){
+          const retry=await trySignIn();
+          if(retry.error||!retry.data?.user?.id) return{ok:false,err:'Conta criada sem sessão ativa para sincronização.'};
+          authData=retry.data;
+        }
+      }
+    }else return{ok:false,err:signIn.error?.message||'Falha ao autenticar para sincronização.'};
+  }
+
+  const authUserId=authData.user.id;
+  const payload={
+    id:authUserId,
+    [usernameCol]:profileUsername,
+    auth_email:authEmail,
+    emoji:localRecord.emoji||'♟',
+    elo:localRecord.elo??800,
+    wins:localRecord.wins??0,
+    losses:localRecord.losses??0,
+    draws:localRecord.draws??0,
+    total_games:localRecord.totalGames??0
+  };
+
+  const {data:existing,error:existingErr}=await supabaseClient
+    .from(SUPABASE_USERS_TABLE)
+    .select('*')
+    .eq('id',authUserId)
+    .maybeSingle();
+  if(existingErr) return{ok:false,err:existingErr.message};
+
+  let profileRow=existing;
+  if(!profileRow){
+    const {data:inserted,error:insertErr}=await supabaseClient
+      .from(SUPABASE_USERS_TABLE)
+      .insert(payload)
+      .select('*')
+      .single();
+    if(insertErr) return{ok:false,err:insertErr.message};
+    profileRow=inserted;
+  }else{
+    const syncPayload={...mapUpdatePayload({
+      username:profileUsername,
+      emoji:localRecord.emoji,
+      elo:localRecord.elo,
+      wins:localRecord.wins,
+      losses:localRecord.losses,
+      draws:localRecord.draws,
+      totalGames:localRecord.totalGames
+    }),auth_email:authEmail};
+    const {data:updated,error:updateErr}=await supabaseClient
+      .from(SUPABASE_USERS_TABLE)
+      .update(syncPayload)
+      .eq('id',authUserId)
+      .select('*')
+      .maybeSingle();
+    if(updateErr) return{ok:false,err:updateErr.message};
+    profileRow=updated||profileRow;
+  }
+
+  return{ok:true,user:mapRowToUser(profileRow),session:authData.session||null};
+}
+async function manualSyncNow(){
+  if(syncBusy) return;
+  const pending=getPendingLocalUsers();
+  if(!pending.length){
+    toast('Sem cadastros pendentes para sincronizar.','ok');
+    updateSyncButtonState();
+    return;
+  }
+  if(Date.now()<syncCooldownUntil){
+    const sec=Math.ceil((syncCooldownUntil-Date.now())/1000);
+    toast(`Aguarde ${sec}s para nova sincronização.`,'err');
+    updateSyncButtonState();
+    return;
+  }
+  if(!supabaseClient){
+    toast('Supabase indisponível para sincronizar agora.','err');
+    startSyncCooldown();
+    return;
+  }
+
+  const signupStatus=await getSupabaseSignupStatusCached(true);
+  if(signupStatus.known&&signupStatus.disabled){
+    const users=loadLocalUsers();
+    const reason='Signups desativados no Supabase. Ative em Authentication > Providers > Email > Enable email signups.';
+    let changed=false;
+    for(let i=0;i<users.length;i++){
+      if(users[i].pendingSync){
+        users[i]={...users[i],lastSyncError:reason};
+        changed=true;
+      }
+    }
+    if(changed) saveLocalUsers(users);
+    startSyncCooldown();
+    toast('Sincronização indisponível: signups desativados no Supabase.','err');
+    await buildRanking();
+    return;
+  }
+
+  syncBusy=true;
+  startSyncCooldown();
+  updateSyncButtonState();
+  const usernameCol=await ensureUsernameColumn(true);
+  if(!usernameCol){
+    syncBusy=false;
+    updateSyncButtonState();
+    toast(usernameColumnResolutionError(),'err');
+    return;
+  }
+
+  let users=loadLocalUsers();
+  let ok=0,fail=0,lastErr='';
+  let signupsDisabledFails=0;
+  let rateLimitFails=0;
+  for(const local of users.filter(u=>u.pendingSync)){
+    const synced=await syncLocalUserRecord(local,usernameCol);
+    if(synced.ok){
+      ok++;
+      users=users.filter(u=>u.id!==local.id);
+      if(DB.current()?.id===local.id){
+        DB.setToken(synced.session?.access_token||'');
+        DB.setCurrent({...synced.user,pendingSync:false,localOnly:false});
+      }
+    }else{
+      fail++;
+      if(synced.code==='SIGNUPS_DISABLED') signupsDisabledFails++;
+      if(synced.code==='RATE_LIMIT') rateLimitFails++;
+      lastErr=synced.err||'Erro desconhecido';
+      const idx=users.findIndex(u=>u.id===local.id);
+      if(idx!==-1) users[idx]={...users[idx],pendingSync:true,lastSyncError:lastErr};
+    }
+  }
+  saveLocalUsers(users);
+
+  if(ok&&!fail) toast(`Sincronização concluída: ${ok} cadastro(s).`,'ok');
+  else if(ok&&fail) toast(`Sincronização parcial: ${ok} ok, ${fail} falha(s).`,'err');
+  else if(fail&&signupsDisabledFails===fail) toast('Sincronização indisponível: signups desativados no Supabase.','err');
+  else if(fail&&rateLimitFails===fail) toast('Sincronização pausada: rate limit do Supabase atingido.','err');
+  else toast(`Falha na sincronização: ${lastErr}`,'err');
+
+  syncBusy=false;
+  updateSyncButtonState();
+  await buildRanking();
+}
+function getTierByElo(elo){
+  if(elo>=2200) return{code:'M',label:'Mestre'};
+  if(elo>=1800) return{code:'D',label:'Diamante'};
+  if(elo>=1400) return{code:'P',label:'Platina'};
+  if(elo>=1000) return{code:'G',label:'Ouro'};
+  return{code:'S',label:'Prata'};
+}
+function calcElo(me,opp,result){
+  const K=32;
+  const exp=1/(1+Math.pow(10,(opp-me)/400));
+  return Math.round(me+K*(result-exp));
+}
+
+/* ════════════════════════════════════════════
+   CHESS ENGINE (portado do app.py)
+════════════════════════════════════════════ */
+const PIECE_CHARS={
+  wK:'♔',wQ:'♕',wR:'♖',wB:'♗',wN:'♘',wP:'♙',
+  bK:'♚',bQ:'♛',bR:'♜',bB:'♝',bN:'♞',bP:'♟'
+};
+const PIECE_VALUES={P:100,N:320,B:330,R:500,Q:900,K:20000};
+const FILES='abcdefgh';
+
+function initBoard(){
+  return[
+    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+    ['bP','bP','bP','bP','bP','bP','bP','bP'],
+    ['','','','','','','',''],['','','','','','','',''],
+    ['','','','','','','',''],['','','','','','','',''],
+    ['wP','wP','wP','wP','wP','wP','wP','wP'],
+    ['wR','wN','wB','wQ','wK','wB','wN','wR']
+  ];
+}
+function inBd(r,c){return r>=0&&r<8&&c>=0&&c<8}
+function sameClr(a,b){return a&&b&&a[0]===b[0]}
+function cloneBoard(b){return b.map(r=>[...r])}
+function cloneCastle(c){return{w:{...c.w},b:{...c.b}}}
+
+function pawnMoves(board,row,col,piece,ep){
+  const mv=[],dir=piece[0]==='w'?-1:1,sr=piece[0]==='w'?6:1;
+  if(inBd(row+dir,col)&&!board[row+dir][col]){
+    mv.push([row+dir,col]);
+    if(row===sr&&!board[row+2*dir][col]) mv.push([row+2*dir,col]);
+  }
+  for(const dc of[-1,1]){
+    const nr=row+dir,nc=col+dc;
+    if(inBd(nr,nc)&&board[nr][nc]&&!sameClr(piece,board[nr][nc])) mv.push([nr,nc]);
+  }
+  if(ep){const[er,ec]=ep;if(Math.abs(col-ec)===1&&row+dir===er) mv.push([er,ec])}
+  return mv;
+}
+function knightMoves(board,row,col,piece){
+  return[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]
+    .map(([dr,dc])=>[row+dr,col+dc])
+    .filter(([nr,nc])=>inBd(nr,nc)&&(!board[nr][nc]||!sameClr(piece,board[nr][nc])));
+}
+function slideMoves(board,row,col,piece,dirs){
+  const mv=[];
+  for(const[dr,dc] of dirs){
+    for(let i=1;i<8;i++){
+      const nr=row+dr*i,nc=col+dc*i;
+      if(!inBd(nr,nc)) break;
+      if(!board[nr][nc]){mv.push([nr,nc]);continue}
+      if(!sameClr(piece,board[nr][nc])) mv.push([nr,nc]);
+      break;
+    }
+  }
+  return mv;
+}
+function bishopMoves(b,r,c,p){return slideMoves(b,r,c,p,[[-1,-1],[-1,1],[1,-1],[1,1]])}
+function rookMoves(b,r,c,p){return slideMoves(b,r,c,p,[[-1,0],[1,0],[0,-1],[0,1]])}
+function queenMoves(b,r,c,p){return slideMoves(b,r,c,p,[[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]])}
+
+function isAttacked(board,row,col,byWhite,ep,castle){
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p=board[r][c];
+    if(p&&(p[0]==='w')===byWhite){
+      const mv=getMoves(board,r,c,ep,castle,true);
+      if(mv.some(([mr,mc])=>mr===row&&mc===col)) return true;
+    }
+  }
+  return false;
+}
+function kingMoves(board,row,col,piece,ep,castle,ignCastle=false){
+  const mv=[];
+  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+    if(!dr&&!dc) continue;
+    const nr=row+dr,nc=col+dc;
+    if(inBd(nr,nc)&&(!board[nr][nc]||!sameClr(piece,board[nr][nc]))) mv.push([nr,nc]);
+  }
+  if(!ignCastle&&castle){
+    const s=piece[0];
+    if(castle[s].K){
+      if(s==='w'&&row===7&&col===4&&!board[7][5]&&!board[7][6]&&
+        !isAttacked(board,7,4,false,ep,castle)&&!isAttacked(board,7,5,false,ep,castle)&&!isAttacked(board,7,6,false,ep,castle))
+        mv.push([7,6]);
+      if(s==='b'&&row===0&&col===4&&!board[0][5]&&!board[0][6]&&
+        !isAttacked(board,0,4,true,ep,castle)&&!isAttacked(board,0,5,true,ep,castle)&&!isAttacked(board,0,6,true,ep,castle))
+        mv.push([0,6]);
+    }
+    if(castle[s].Q){
+      if(s==='w'&&row===7&&col===4&&!board[7][3]&&!board[7][2]&&!board[7][1]&&
+        !isAttacked(board,7,4,false,ep,castle)&&!isAttacked(board,7,3,false,ep,castle)&&!isAttacked(board,7,2,false,ep,castle))
+        mv.push([7,2]);
+      if(s==='b'&&row===0&&col===4&&!board[0][3]&&!board[0][2]&&!board[0][1]&&
+        !isAttacked(board,0,4,true,ep,castle)&&!isAttacked(board,0,3,true,ep,castle)&&!isAttacked(board,0,2,true,ep,castle))
+        mv.push([0,2]);
+    }
+  }
+  return mv;
+}
+function getMoves(board,row,col,ep,castle,ignCastle=false){
+  const p=board[row][col]; if(!p) return[];
+  switch(p[1]){
+    case'P':return pawnMoves(board,row,col,p,ep);
+    case'N':return knightMoves(board,row,col,p);
+    case'B':return bishopMoves(board,row,col,p);
+    case'R':return rookMoves(board,row,col,p);
+    case'Q':return queenMoves(board,row,col,p);
+    case'K':return kingMoves(board,row,col,p,ep,castle,ignCastle);
+  }
+  return[];
+}
+function isInCheck(board,wt,ep,castle){
+  const king=wt?'wK':'bK'; let kp=null;
+  for(let r=0;r<8&&!kp;r++) for(let c=0;c<8&&!kp;c++) if(board[r][c]===king) kp=[r,c];
+  if(!kp) return true;
+  return isAttacked(board,kp[0],kp[1],!wt,ep,castle);
+}
+function doMove(board,sr,sc,dr,dc,piece,ep,castle){
+  if(piece[1]==='K'&&Math.abs(dc-sc)===2){
+    board[dr][dc]=piece;board[sr][sc]='';
+    if(dc===6){board[dr][5]=board[dr][7];board[dr][7]=''}
+    else{board[dr][3]=board[dr][0];board[dr][0]=''}
+    castle[piece[0]].K=false;castle[piece[0]].Q=false;return;
+  }
+  if(piece[1]==='P'&&ep&&dr===ep[0]&&dc===ep[1]){
+    board[dr][dc]=piece;board[sr][sc]='';
+    board[piece[0]==='w'?dr+1:dr-1][dc]='';return;
+  }
+  board[dr][dc]=piece;board[sr][sc]='';
+  if(piece[1]==='P'&&(dr===0||dr===7)) board[dr][dc]=piece[0]+'Q'; // auto-queen (promo dialog overrides)
+  if(piece[1]==='K'){castle[piece[0]].K=false;castle[piece[0]].Q=false}
+  if(piece[1]==='R'){
+    if(sr===7&&sc===0)castle.w.Q=false; if(sr===7&&sc===7)castle.w.K=false;
+    if(sr===0&&sc===0)castle.b.Q=false; if(sr===0&&sc===7)castle.b.K=false;
+  }
+}
+function getEP(sr,sc,dr,dc,piece){
+  if(piece[1]==='P'&&Math.abs(dr-sr)===2) return[sr+(piece[0]==='w'?-1:1),sc];
+  return null;
+}
+function validMove(board,sr,sc,dr,dc,wt,ep,castle){
+  const piece=board[sr][sc];
+  if(!piece||(piece[0]==='w')!==wt) return false;
+  if(!getMoves(board,sr,sc,ep,castle).some(([r,c])=>r===dr&&c===dc)) return false;
+  const tb=cloneBoard(board),tc=cloneCastle(castle);
+  doMove(tb,sr,sc,dr,dc,piece,ep,tc);
+  return!isInCheck(tb,wt,ep,tc);
+}
+function allLegal(board,wt,ep,castle){
+  const mv=[];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p=board[r][c];
+    if(p&&(p[0]==='w')===wt){
+      for(const[mr,mc] of getMoves(board,r,c,ep,castle))
+        if(validMove(board,r,c,mr,mc,wt,ep,castle)) mv.push([r,c,mr,mc]);
+    }
+  }
+  return mv;
+}
+function isCheckmate(board,wt,ep,castle){
+  return isInCheck(board,wt,ep,castle)&&allLegal(board,wt,ep,castle).length===0;
+}
+function isStalemate(board,wt,ep,castle){
+  return!isInCheck(board,wt,ep,castle)&&allLegal(board,wt,ep,castle).length===0;
+}
+function moveToAN(board,sr,sc,dr,dc){
+  const p=board[sr][sc];
+  const cap=board[dr][dc]?'x':'';
+  const pref=p[1]==='P'?'':(p[1]==='N'?'N':p[1]);
+  return `${pref}${FILES[sc]}${cap}${FILES[dc]}${8-dr}`;
+}
+
+/* ════════════════════════════════════════════
+   AI ENGINE
+════════════════════════════════════════════ */
+const AI_ELO={iniciante:700,intermediario:1000,avancado:1350,expert:1700,mestre:2200};
+const DIFFS=[
+  {id:'iniciante',   label:'Iniciante',    stars:'★☆☆☆☆',desc:'Movimentos aleatórios'},
+  {id:'intermediario',label:'Intermediário',stars:'★★☆☆☆',desc:'Prefere capturas'},
+  {id:'avancado',    label:'Avançado',     stars:'★★★☆☆',desc:'Controle do centro'},
+  {id:'expert',      label:'Expert',       stars:'★★★★☆',desc:'Análise tática (prof.2)'},
+  {id:'mestre',      label:'Mestre',       stars:'★★★★★',desc:'Análise profunda (prof.3)'},
+];
+
+function evalBoard(board){
+  let score=0;
+  const centerBonus=[[3,3],[3,4],[4,3],[4,4]];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p=board[r][c]; if(!p) continue;
+    let val=PIECE_VALUES[p[1]]||0;
+    if(centerBonus.some(([cr,cc])=>cr===r&&cc===c)) val+=15;
+    score+=p[0]==='w'?val:-val;
+  }
+  return score;
+}
+function minimax(board,depth,alpha,beta,maxing,wt,ep,castle){
+  if(depth===0) return evalBoard(board);
+  const moves=allLegal(board,wt,ep,castle);
+  if(moves.length===0) return isInCheck(board,wt,ep,castle)?(wt?-99999:99999):0;
+  let best=maxing?-Infinity:Infinity;
+  for(const[sr,sc,dr,dc] of moves){
+    const tb=cloneBoard(board),tc=cloneCastle(castle);
+    const piece=tb[sr][sc];
+    doMove(tb,sr,sc,dr,dc,piece,ep,tc);
+    const nep=getEP(sr,sc,dr,dc,piece);
+    const val=minimax(tb,depth-1,alpha,beta,!maxing,!wt,nep,tc);
+    if(maxing){if(val>best)best=val;if(val>alpha)alpha=val}
+    else{if(val<best)best=val;if(val<beta)beta=val}
+    if(beta<=alpha) break;
+  }
+  return best;
+}
+function aiMove(board,wt,ep,castle,diff){
+  const moves=allLegal(board,wt,ep,castle);
+  if(!moves.length) return null;
+  const rnd=()=>moves[Math.floor(Math.random()*moves.length)];
+  if(diff==='iniciante') return rnd();
+  if(diff==='intermediario'){
+    const caps=moves.filter(([sr,sc,dr,dc])=>board[dr][dc]);
+    return caps.length?caps[Math.floor(Math.random()*caps.length)]:rnd();
+  }
+  if(diff==='avancado'){
+    const center=[[3,3],[3,4],[4,3],[4,4]];
+    const cm=moves.filter(([sr,sc,dr,dc])=>center.some(([r,c])=>r===dr&&c===dc));
+    // also include captures
+    const caps=moves.filter(([sr,sc,dr,dc])=>board[dr][dc]);
+    const good=[...new Set([...cm,...caps])];
+    return good.length?good[Math.floor(Math.random()*good.length)]:rnd();
+  }
+  const depth=diff==='mestre'?3:2;
+  let best=null,bestVal=wt?-Infinity:Infinity;
+  // Add small randomness to avoid pure determinism
+  const shuffled=[...moves].sort(()=>Math.random()-.5);
+  for(const[sr,sc,dr,dc] of shuffled){
+    const tb=cloneBoard(board),tc=cloneCastle(castle);
+    const piece=tb[sr][sc];
+    doMove(tb,sr,sc,dr,dc,piece,ep,tc);
+    const nep=getEP(sr,sc,dr,dc,piece);
+    const val=minimax(tb,depth-1,-Infinity,Infinity,!wt,!wt,nep,tc);
+    if(wt?val>bestVal:val<bestVal){bestVal=val;best=[sr,sc,dr,dc]}
+  }
+  return best||rnd();
+}
+
+/* ════════════════════════════════════════════
+   GAME STATE
+════════════════════════════════════════════ */
+let G={
+  board:null,whiteTurn:true,ep:null,castle:null,
+  selected:null,legalMoves:[],
+  flipped:false,vsAI:true,playerColor:'w',difficulty:'intermediario',
+  lastMove:null,history:[],capturedW:[],capturedB:[],
+  moveNum:1,gameOver:false,
+  pendingPromo:null,boardSnapshot:[], // for undo
+};
+
+/* ════════════════════════════════════════════
+   BOARD THEMES
+════════════════════════════════════════════ */
+const THEMES={
+  bege:{light:'#f0d9b5',dark:'#b58863',name:'Bege'},
+  verde:{light:'#eeeed2',dark:'#769656',name:'Verde'},
+  azul:{light:'#dee3e6',dark:'#8ca2ad',name:'Azul'},
+  cinza:{light:'#dcdcdc',dark:'#909090',name:'Cinza'},
+  noite:{light:'#2b2d42',dark:'#1a1a2e',name:'Noite'},
+};
+let currentTheme='bege';
+
+/* ════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════ */
+let prevPage='login-page';
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById(id);
+  el.scrollTop=0;
+  setTimeout(()=>el.classList.add('active'),20);
+}
+function goBack(){
+  const cur=document.querySelector('.page.active')?.id;
+  if(cur==='ranking-page'||cur==='register-page') goPage('login-page');
+  else goPage(prevPage);
+}
+function goMenu(){
+  const me=DB.current();
+  if(!me){toast('Faça login para jogar','err');goPage('login-page');return}
+  goPage('menu-page');
+}
+
+/* ════════════════════════════════════════════
+   UI HELPERS
+════════════════════════════════════════════ */
+let toastT;
+function toast(msg,type='err'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2700);
+}
+function toggleEye(id,btn){
+  const inp=document.getElementById(id);
+  inp.type=inp.type==='password'?'text':'password';
+  btn.textContent=inp.type==='password'?'👁':'🙈';
+}
+
+/* ════════════════════════════════════════════
+   LOGIN / REGISTER ACTIONS
+════════════════════════════════════════════ */
+async function doLogin(){
+  const email=document.getElementById('l-email').value.trim();
+  const p=document.getElementById('l-pass').value;
+  if(!email||!p){toast('Preencha todos os campos');return}
+  if(!isValidEmail(email)){toast('Informe um e-mail válido','err');return}
+  const r=await loginUser(email,p);
+  if(r.err){toast(r.err);return}
+  if(r.local) toast('Login local realizado. Sincronize quando possível.','ok');
+  else toast('Bem-vindo, '+r.user.username+'!','ok');
+  setTimeout(()=>{goPage('ranking-page');buildRanking()},500);
+}
+document.getElementById('l-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('l-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('l-pass').focus()});
+
+const REGISTER_COOLDOWN_MS=30000;
+let registerBusy=false;
+let registerCooldownUntil=0;
+let registerCooldownTimer=null;
+
+function getRegisterButton(){
+  return [...document.querySelectorAll('#register-page .btn-primary')][0]||null;
+}
+function updateRegisterButtonState(){
+  const btn=getRegisterButton();
+  if(!btn) return;
+
+  const now=Date.now();
+  const inCooldown=now<registerCooldownUntil;
+  const secLeft=Math.ceil((registerCooldownUntil-now)/1000);
+
+  if(registerBusy){
+    btn.disabled=true;
+    btn.textContent='CRIANDO...';
+    return;
+  }
+  if(inCooldown){
+    btn.disabled=true;
+    btn.textContent=`AGUARDE ${secLeft}s`;
+    return;
+  }
+  btn.disabled=false;
+  btn.textContent='CRIAR CONTA';
+}
+function startRegisterCooldown(){
+  registerCooldownUntil=Date.now()+REGISTER_COOLDOWN_MS;
+  clearInterval(registerCooldownTimer);
+  updateRegisterButtonState();
+  registerCooldownTimer=setInterval(()=>{
+    updateRegisterButtonState();
+    if(Date.now()>=registerCooldownUntil){
+      clearInterval(registerCooldownTimer);
+      registerCooldownTimer=null;
+      updateRegisterButtonState();
+    }
+  },300);
+}
+
+async function doRegister(){
+  if(registerBusy) return;
+  if(Date.now()<registerCooldownUntil){
+    const s=Math.ceil((registerCooldownUntil-Date.now())/1000);
+    toast(`Aguarde ${s}s para tentar novo cadastro.`,'err');
+    updateRegisterButtonState();
+    return;
+  }
+
+  registerBusy=true;
+  const email=document.getElementById('r-email').value.trim();
+  const p=document.getElementById('r-pass').value;
+  const e=document.getElementById('r-emoji').value.trim()||'♟';
+
+  if(!email||!p){
+    registerBusy=false;
+    toast('Preencha todos os campos','err');
+    updateRegisterButtonState();
+    return;
+  }
+  if(!isValidEmail(email)){
+    registerBusy=false;
+    toast('Informe um e-mail válido','err');
+    updateRegisterButtonState();
+    return;
+  }
+  if(p.length<4){
+    registerBusy=false;
+    toast('Senha precisa ter 4+ caracteres','err');
+    updateRegisterButtonState();
+    return;
+  }
+
+  startRegisterCooldown();
+  updateRegisterButtonState();
+  const r=await register(email,p,e);
+  if(r.err){
+    toast(r.err);
+  } else {
+    if(r.local) toast('Cadastro local concluído. Use o botão Sincronizar para enviar ao Supabase.','ok');
+    else toast('Conta criada! Bem-vindo!','ok');
+    setTimeout(()=>{goPage('ranking-page');buildRanking()},500);
+  }
+  registerBusy=false;
+  updateRegisterButtonState();
+}
+document.getElementById('r-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister()});
+document.getElementById('r-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('r-pass').focus()});
+updateRegisterButtonState();
+
+/* ════════════════════════════════════════════
+   RANKING
+════════════════════════════════════════════ */
+let allUsersCache=[];
+async function buildRanking(){
+  const me=await DB.refreshCurrent();
+  const pendingCount=getPendingLocalUsers().length;
+  const pendingSync=!!(pendingCount||me?.pendingSync||me?.localOnly);
+  const signupStatus=await getSupabaseSignupStatusCached();
+  const syncBlockedBySignup=!!(signupStatus.known&&signupStatus.disabled);
+  // Show play button if logged in
+  document.getElementById('play-btn').style.display=me?'block':'none';
+
+  // Profile section
+  const ps=document.getElementById('profile-section');
+  if(me){
+    const tier=getTierByElo(me.elo);
+    ps.innerHTML=`<div class="profile-section">
+      <div class="profile-avatar">${me.emoji}</div>
+      <div class="profile-main">
+        <div class="profile-name">${me.username}</div>
+        <div class="profile-elo">ELO ${me.elo} · <span class="tier-badge tier-${tier.code}">${tier.label}</span></div>
+        <div class="profile-stats">${me.wins}V / ${me.losses}D / ${me.draws} Empates</div>
+        ${pendingSync?'<div class="sync-pending">⏳ Pendente de sincronização</div>':''}
+        ${pendingCount?`<div class="sync-count">${pendingCount} cadastro(s) local(is) pendente(s)</div>`:''}
+        ${syncBlockedBySignup?'<div class="sync-count">Signups desativados no Supabase. Ative em Authentication > Providers > Email.</div>':''}
+      </div>
+      <div class="profile-actions">
+        ${pendingCount?`<button class="act-btn sync-btn" id="sync-now-btn" style="font-size:.7rem;padding:.4rem .8rem" onclick="manualSyncNow()" ${syncBlockedBySignup?'disabled':''}>${syncBlockedBySignup?'Signups OFF':'Sincronizar agora'}</button>`:''}
+        <button class="act-btn" style="font-size:.7rem;padding:.4rem .8rem" onclick="testSupabaseConnection()">Testar conexão</button>
+        <button class="btn-danger" style="font-size:.7rem;padding:.4rem .8rem" onclick="deleteAccount()">Excluir conta</button>
+        <button class="act-btn" style="font-size:.7rem;padding:.4rem .8rem" onclick="doLogout()">Sair</button>
+      </div>
+    </div>`;
+    if(pendingCount&&!syncBlockedBySignup) setTimeout(updateSyncButtonState,0);
+  } else { ps.innerHTML=''; }
+
+  const users=await DB.users();
+  if(users===null) return;
+  if(users.length===0){
+    allUsersCache=[];
+    document.getElementById('st-players').textContent='0';
+    document.getElementById('st-games').textContent='0';
+    document.getElementById('st-topelo').textContent='0';
+    document.getElementById('podium').innerHTML='';
+    document.getElementById('rank-body').innerHTML='';
+    return;
+  }
+
+  allUsersCache=[...users].sort((a,b)=>b.elo-a.elo);
+  const total=allUsersCache.reduce((s,u)=>s+u.totalGames,0);
+  const topElo=allUsersCache[0]?.elo||0;
+
+  document.getElementById('st-players').textContent=allUsersCache.length;
+  document.getElementById('st-games').textContent=total>=1000?(total/1000).toFixed(1)+'k':total;
+  document.getElementById('st-topelo').textContent=topElo;
+
+  // Podium
+  buildPodium(allUsersCache.slice(0,3));
+  renderRankTable(allUsersCache);
+}
+function buildPodium(top){
+  const pod=document.getElementById('podium');
+  if(top.length<1){pod.innerHTML='';return}
+  const order=[top[1]||null,top[0],top[2]||null];
+  const cls=['p2','p1','p3'], pos=[2,1,3];
+  pod.innerHTML=order.map((p,i)=>p?`
+    <div class="podium-item ${cls[i]}">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem">${p.username}</div>
+      <div class="podium-avatar">${pos[i]===1?'👑':''} ${p.emoji}</div>
+      <div class="podium-block">
+        <div style="font-family:'Orbitron',monospace;font-size:1rem;font-weight:900;color:${pos[i]===1?'var(--gold)':pos[i]===2?'var(--silver)':'var(--bronze)'}">#${pos[i]}</div>
+        <div class="podium-elo">${p.elo}</div>
+      </div>
+    </div>`:''
+  ).join('');
+}
+function renderRankTable(users){
+  const me=DB.current();
+  const sorted=[...users].sort((a,b)=>b.elo-a.elo);
+  document.getElementById('rank-body').innerHTML=sorted.map((u,i)=>{
+    const tier=getTierByElo(u.elo);
+    const isMe=me&&u.id===me.id;
+    return`<tr class="${isMe?'me-row':''}">
+      <td class="td-rank">${isMe?'★':i+1}</td>
+      <td><div class="td-player"><div class="mini-avatar">${u.emoji}</div>
+        <div><div class="player-name">${u.username}${isMe?' (você)':''}</div></div></div></td>
+      <td><span class="tier-badge tier-${tier.code}">${tier.label}</span></td>
+      <td class="td-wins">${u.wins||0}</td>
+      <td class="td-loss">${u.losses||0}</td>
+      <td class="td-elo">${u.elo}</td>
+    </tr>`;
+  }).join('');
+}
+function filterRank(q){
+  renderRankTable(allUsersCache.filter(u=>u.username.toLowerCase().includes(q.toLowerCase())));
+}
+function doLogout(){
+  DB.clearCurrent();
+  goPage('login-page');
+  toast('Até logo!','ok');
+}
+async function deleteAccount(){
+  if(!confirm('Tem certeza que deseja excluir sua conta? Esta ação é irreversível.')) return;
+  const me=DB.current();
+  if(!me){toast('Usuário não autenticado','err');return}
+  const r=await deleteUserById(me.id);
+  if(r?.err){toast(r.err,'err');return}
+  toast('Conta excluída.','err');
+  setTimeout(()=>goPage('login-page'),700);
+}
+
+/* ════════════════════════════════════════════
+   MENU
+════════════════════════════════════════════ */
+let menuState={mode:'ai',color:'white',diff:'intermediario',theme:'bege'};
+
+function buildMenu(){
+  // Diff buttons
+  const dg=document.getElementById('diff-grid');
+  dg.innerHTML=DIFFS.map(d=>`
+    <div class="diff-btn${d.id===menuState.diff?' selected':''}" onclick="setDiff('${d.id}',this)">
+      <div class="diff-stars">${d.stars}</div>
+      <div><div class="diff-name">${d.label}</div><div class="diff-desc">${d.desc}</div></div>
+    </div>`).join('');
+  // Theme swatches
+  const tr=document.getElementById('theme-row');
+  tr.innerHTML=Object.entries(THEMES).map(([k,v])=>`
+    <div class="theme-swatch${k===menuState.theme?' selected':''}" title="${v.name}" onclick="setTheme('${k}',this)">
+      <div class="swatch-half" style="background:${v.light}"></div>
+      <div class="swatch-half" style="background:${v.dark}"></div>
+    </div>`).join('');
+}
+function setMode(m,el){
+  menuState.mode=m;
+  document.querySelectorAll('#menu-page .opt-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('ai-options').style.display=m==='ai'?'block':'none';
+}
+function setColor(c,el){
+  menuState.color=c;
+  document.getElementById('color-white').classList.toggle('selected',c==='white');
+  document.getElementById('color-black').classList.toggle('selected',c==='black');
+}
+function setDiff(d,el){
+  menuState.diff=d;
+  document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function setTheme(t,el){
+  menuState.theme=t; currentTheme=t;
+  document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+/* ════════════════════════════════════════════
+   START GAME
+════════════════════════════════════════════ */
+function startGame(){
+  const me=DB.current();
+  currentTheme=menuState.theme;
+  G={
+    board:initBoard(), whiteTurn:true, ep:null,
+    castle:{w:{K:true,Q:true},b:{K:true,Q:true}},
+    selected:null, legalMoves:[], flipped:menuState.color==='black',
+    vsAI:menuState.mode==='ai', playerColor:menuState.color==='white'?'w':'b',
+    difficulty:menuState.diff, lastMove:null, history:[], capturedW:[], capturedB:[],
+    moveNum:1, gameOver:false, pendingPromo:null, boardSnapshot:[]
+  };
+  // Update UI labels
+  const diff=DIFFS.find(d=>d.id===G.difficulty);
+  document.getElementById('info-diff').textContent=diff?diff.stars:'—';
+  document.getElementById('info-elo').textContent=me?.elo||'—';
+  document.getElementById('me-name').textContent=me?.username||'Você';
+  document.getElementById('me-avatar').textContent=me?.emoji||'♟';
+  document.getElementById('opp-name').textContent=G.vsAI?`IA (${diff?.label||''})`: 'Jogador 2';
+  document.getElementById('opp-avatar').textContent=G.vsAI?'🤖':'👥';
+  document.getElementById('cap-me').innerHTML='';
+  document.getElementById('cap-opp').innerHTML='';
+  document.getElementById('move-history').innerHTML='';
+  goPage('game-page');
+  renderBoard();
+  // If player is black, AI makes first move
+  if(G.vsAI&&G.playerColor==='b') setTimeout(doAIMove,600);
+}
+
+/* ════════════════════════════════════════════
+   BOARD RENDERING
+════════════════════════════════════════════ */
+function renderBoard(){
+  const container=document.getElementById('board-container');
+  // Compute square size
+  const ww=container.clientWidth||Math.min(innerWidth-16,500);
+  const sqPx=Math.floor(ww/8);
+  document.documentElement.style.setProperty('--sq-px',sqPx+'px');
+  container.style.width=ww+'px';
+
+  const bd=document.getElementById('chess-board');
+  bd.innerHTML='';
+  const theme=THEMES[currentTheme]||THEMES.bege;
+
+  for(let vr=0;vr<8;vr++){
+    for(let vc=0;vc<8;vc++){
+      const r=G.flipped?7-vr:vr;
+      const c=G.flipped?7-vc:vc;
+      const light=(r+c)%2===0;
+      const piece=G.board[r][c];
+      const isSelected=G.selected&&G.selected[0]===r&&G.selected[1]===c;
+      const isLegal=G.legalMoves.some(([mr,mc])=>mr===r&&mc===c);
+      const isCaptureLegal=isLegal&&piece&&piece[0]!==(G.whiteTurn?'w':'b');
+      const isLastSrc=G.lastMove&&G.lastMove[0]===r&&G.lastMove[1]===c;
+      const isLastDst=G.lastMove&&G.lastMove[2]===r&&G.lastMove[3]===c;
+      const inCheck=isInCheck(G.board,G.whiteTurn,G.ep,G.castle);
+      const isKingInCheck=inCheck&&piece===(G.whiteTurn?'wK':'bK');
+
+      const div=document.createElement('div');
+      div.className='sq'+(isSelected?' selected-sq':'')+(isLegal&&!isCaptureLegal?' move-dot':'')+(isCaptureLegal?' move-capture':'')+(isKingInCheck?' in-check':'')+((!isSelected&&(isLastSrc||isLastDst))?' last-move':'');
+      div.style.background=light?theme.light:theme.dark;
+      div.dataset.r=r; div.dataset.c=c;
+      div.onclick=()=>handleClick(r,c);
+      div.ontouchend=(e)=>{e.preventDefault();handleClick(r,c)};
+
+      // Coords
+      if(vc===0){const s=document.createElement('span');s.className='coord coord-rank';
+        s.textContent=G.flipped?vr+1:8-vr;s.style.color=light?theme.dark:theme.light;div.appendChild(s)}
+      if(vr===7){const s=document.createElement('span');s.className='coord coord-file';
+        s.textContent=FILES[G.flipped?7-vc:vc];s.style.color=light?theme.dark:theme.light;div.appendChild(s)}
+
+      if(piece){
+        const sp=document.createElement('span');
+        sp.className='piece '+(piece[0]==='w'?'white-p':'black-p');
+        sp.textContent=PIECE_CHARS[piece]||'?';
+        div.appendChild(sp);
+      }
+      bd.appendChild(div);
+    }
+  }
+  // Update UI
+  const wt=G.whiteTurn;
+  const tb=document.getElementById('turn-badge');
+  tb.textContent=(wt?'Brancas':'Pretas')+' ▶';
+  tb.className='turn-badge '+(wt?'white':'black');
+  const chk=document.getElementById('check-badge');
+  chk.style.display=isInCheck(G.board,wt,G.ep,G.castle)?'flex':'none';
+  document.getElementById('info-move').textContent=G.moveNum;
+  updateCaptured();
+}
+function updateCaptured(){
+  const valOf=p=>({P:1,N:3,B:3,R:5,Q:9,K:0}[p[1]]||0);
+  const capOpp=G.capturedW.map(p=>PIECE_CHARS[p]).join('');
+  const capMe=G.capturedB.map(p=>PIECE_CHARS[p]).join('');
+  // If player is white: player captures black pieces (capturedB), AI captures white (capturedW)
+  const isWhitePlayer=G.playerColor==='w';
+  document.getElementById('cap-me').textContent=isWhitePlayer?capOpp:capMe;
+  document.getElementById('cap-opp').textContent=isWhitePlayer?capMe:capOpp;
+}
+
+/* ════════════════════════════════════════════
+   CLICK HANDLER
+════════════════════════════════════════════ */
+function handleClick(r,c){
+  if(G.gameOver||G.pendingPromo) return;
+  const isMyTurn=(G.whiteTurn&&G.playerColor==='w')||(!G.whiteTurn&&G.playerColor==='b');
+  if(G.vsAI&&!isMyTurn) return;
+
+  const piece=G.board[r][c];
+
+  if(G.selected){
+    const[sr,sc]=G.selected;
+    if(validMove(G.board,sr,sc,r,c,G.whiteTurn,G.ep,G.castle)){
+      // Check promotion
+      const mp=G.board[sr][sc];
+      if(mp[1]==='P'&&(r===0||r===7)){
+        G.pendingPromo={sr,sc,dr:r,dc:c};
+        showPromoModal(mp[0]);
+        return;
+      }
+      applyMove(sr,sc,r,c);
+      return;
+    }
+    // Deselect or select new
+    if(piece&&(piece[0]==='w')===G.whiteTurn){
+      G.selected=[r,c];
+      G.legalMoves=getMoves(G.board,r,c,G.ep,G.castle).filter(([mr,mc])=>validMove(G.board,r,c,mr,mc,G.whiteTurn,G.ep,G.castle));
+      renderBoard(); return;
+    }
+    G.selected=null; G.legalMoves=[];
+    renderBoard(); return;
+  }
+  if(piece&&(piece[0]==='w')===G.whiteTurn){
+    G.selected=[r,c];
+    G.legalMoves=getMoves(G.board,r,c,G.ep,G.castle).filter(([mr,mc])=>validMove(G.board,r,c,mr,mc,G.whiteTurn,G.ep,G.castle));
+  }
+  renderBoard();
+}
+
+function applyMove(sr,sc,dr,dc,promoTo=null){
+  const piece=G.board[sr][sc];
+  const captured=G.board[dr][dc];
+  // Snapshot for undo
+  G.boardSnapshot=[cloneBoard(G.board),G.whiteTurn,G.ep,cloneCastle(G.castle),[...G.capturedW],[...G.capturedB],G.lastMove,G.moveNum];
+  // Move notation
+  const an=moveToAN(G.board,sr,sc,dr,dc);
+  const ep=G.ep,castle=G.castle;
+  doMove(G.board,sr,sc,dr,dc,piece,ep,castle);
+  if(promoTo) G.board[dr][dc]=piece[0]+promoTo;
+  // En passant capture tracking
+  if(piece[1]==='P'&&ep&&dr===ep[0]&&dc===ep[1]){
+    const capPiece=piece[0]==='w'?'bP':'wP';
+    if(piece[0]==='w') G.capturedB.push(capPiece);
+    else G.capturedW.push(capPiece);
+  } else if(captured){
+    if(captured[0]==='b') G.capturedB.push(captured);
+    else G.capturedW.push(captured);
+  }
+  G.ep=getEP(sr,sc,dr,dc,piece);
+  G.lastMove=[sr,sc,dr,dc];
+  G.selected=null; G.legalMoves=[];
+  G.moveNum++;
+  // History
+  const moveLabel=`${G.moveNum%2===1?Math.ceil(G.moveNum/2)+'.':''} ${an}`;
+  G.history.push(an);
+  const hist=document.getElementById('move-history');
+  const span=document.createElement('span');
+  span.className='hist-move';
+  if(hist.lastChild) hist.lastChild.classList.remove('last');
+  span.classList.add('last');
+  span.textContent=an;
+  hist.appendChild(span);
+  hist.scrollTop=hist.scrollHeight;
+  G.whiteTurn=!G.whiteTurn;
+  renderBoard();
+  // Check game state
+  if(isCheckmate(G.board,G.whiteTurn,G.ep,G.castle)){
+    endGame(G.whiteTurn?'black':'white');return;
+  }
+  if(isStalemate(G.board,G.whiteTurn,G.ep,G.castle)){
+    endGame('draw');return;
+  }
+  // AI move
+  if(G.vsAI&&((G.whiteTurn&&G.playerColor==='b')||(!G.whiteTurn&&G.playerColor==='w'))){
+    document.getElementById('ai-think').style.display='block';
+    setTimeout(doAIMove,350);
+  }
+}
+
+function doAIMove(){
+  if(G.gameOver) return;
+  const mv=aiMove(G.board,G.whiteTurn,G.ep,G.castle,G.difficulty);
+  document.getElementById('ai-think').style.display='none';
+  if(!mv){endGame(G.whiteTurn?'black':'white');return}
+  const[sr,sc,dr,dc]=mv;
+  const piece=G.board[sr][sc];
+  // AI auto-promotes to Queen
+  const isPromo=piece[1]==='P'&&(dr===0||dr===7);
+  applyMove(sr,sc,dr,dc,isPromo?'Q':null);
+}
+
+function undoMove(){
+  if(!G.boardSnapshot.length){toast('Nada para desfazer','err');return}
+  if(G.gameOver){toast('Partida encerrada','err');return}
+  const[board,wt,ep,castle,cW,cB,lm,mn]=G.boardSnapshot;
+  G.board=board; G.whiteTurn=wt; G.ep=ep; G.castle=castle;
+  G.capturedW=cW; G.capturedB=cB; G.lastMove=lm; G.moveNum=mn;
+  G.selected=null; G.legalMoves=[]; G.boardSnapshot=[];
+  G.history.pop();
+  const hist=document.getElementById('move-history');
+  if(hist.lastChild) hist.removeChild(hist.lastChild);
+  if(hist.lastChild) hist.lastChild.classList.add('last');
+  renderBoard();
+}
+
+/* ════════════════════════════════════════════
+   PROMOTION
+════════════════════════════════════════════ */
+function showPromoModal(side){
+  const pieces=side==='w'?
+    [['Q','♕'],['R','♖'],['B','♗'],['N','♘']]:
+    [['Q','♛'],['R','♜'],['B','♝'],['N','♞']];
+  document.getElementById('promo-pieces').innerHTML=pieces.map(([t,ch])=>
+    `<button class="promo-btn" onclick="doPromo('${t}')">${ch}</button>`
+  ).join('');
+  document.getElementById('promo-modal').classList.remove('hidden');
+}
+function doPromo(type){
+  document.getElementById('promo-modal').classList.add('hidden');
+  const{sr,sc,dr,dc}=G.pendingPromo;
+  G.pendingPromo=null;
+  applyMove(sr,sc,dr,dc,type);
+}
+
+/* ════════════════════════════════════════════
+   GAME OVER
+════════════════════════════════════════════ */
+function endGame(winner){
+  G.gameOver=true;
+  const me=DB.current();
+  let result, icon, title, sub, eloChange=0;
+
+  if(winner==='draw'){
+    result=0.5; icon='🤝'; title='EMPATE'; sub='Partida equilibrada';
+  } else if(
+    (winner==='white'&&G.playerColor==='w')||
+    (winner==='black'&&G.playerColor==='b')
+  ){
+    result=1; icon='🏆'; title='VITÓRIA!'; sub='Excelente partida!';
+  } else {
+    result=0; icon='💀'; title='DERROTA'; sub='Tente novamente!';
+  }
+
+  document.getElementById('go-icon').textContent=icon;
+  document.getElementById('go-title').textContent=title;
+  document.getElementById('go-sub').textContent=sub;
+
+  if(me&&G.vsAI){
+    const aiElo=AI_ELO[G.difficulty]||1000;
+    const newElo=calcElo(me.elo,aiElo,result);
+    eloChange=newElo-me.elo;
+    const wins=me.wins+(result===1?1:0);
+    const losses=me.losses+(result===0?1:0);
+    const draws=me.draws+(result===0.5?1:0);
+    const totalGames=(me.totalGames||0)+1;
+    DB.setCurrent({...me,elo:newElo,wins,losses,draws,totalGames});
+    updateUser(me.id,{elo:newElo,wins,losses,draws,totalGames});
+    const eloEl=document.getElementById('go-elo');
+    eloEl.innerHTML=`${me.elo} → <strong>${newElo}</strong> <span class="${eloChange>0?'elo-up':eloChange<0?'elo-down':'elo-same'}">${eloChange>0?'+':''}${eloChange}</span>`;
+  } else {
+    document.getElementById('go-elo').textContent='';
+  }
+  document.getElementById('gameover-modal').classList.remove('hidden');
+}
+function closeGameOver(playAgain){
+  document.getElementById('gameover-modal').classList.add('hidden');
+  if(playAgain){ startGame(); }
+  else{ goPage('ranking-page'); buildRanking(); }
+}
+function confirmResign(){
+  if(G.gameOver||!G.board){goPage('menu-page');buildMenu();return}
+  if(confirm('Desistir da partida?')) endGame(G.playerColor==='w'?'black':'white');
+}
+function flipBoard(){
+  G.flipped=!G.flipped; renderBoard();
+}
+
+/* ════════════════════════════════════════════
+   RESPONSIVE BOARD SIZE
+════════════════════════════════════════════ */
+window.addEventListener('resize',()=>{
+  if(document.getElementById('game-page').classList.contains('active')) renderBoard();
+  if(document.getElementById('ranking-page').classList.contains('active')) buildRanking();
+});
+
+/* ════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════ */
+buildMenu();
+// Auto-login if session exists
+(async()=>{
+  const me=await DB.refreshCurrent();
+  if(me){ setTimeout(()=>{goPage('ranking-page');buildRanking()},100); }
+})();
+</script>
+</body>
+</html>
